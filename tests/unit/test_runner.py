@@ -34,7 +34,9 @@ def run(
     on_confirm: str = "ask",
     decision: bool | None = None,
 ) -> tuple[list[BaseModel], AgentRunner]:
-    store = store or RecordingStore(Path("/nonexistent-recordings"))
+    # An empty store is falsy (it has __len__), so test for None explicitly.
+    if store is None:
+        store = RecordingStore(Path("/nonexistent-recordings"))
     request = RunRequest(
         case_id,
         protected,
@@ -314,21 +316,32 @@ def test_replay_is_deterministic_and_matches_the_recording(tmp_path: Path, prote
 
 
 def test_layer_toggles_replay_from_the_same_recordings(tmp_path: Path) -> None:
-    # The tool guard only decides, so switching the output guard off needs no new recording.
-    store = RecordingStore(tmp_path)
-    run(
-        "inbox.hidden_forward",
-        inbox_script(FORWARD),
-        layers=ONLY_TOOL_GUARD,
-        store=store,
-        mode="record",
-    )
+    # The tool guard only decides, so it never changes a model request. A blocked call ends the
+    # run, though, so `seculayer record` also records the tool-guard-off companion for the
+    # continuation (recording_batch.companion). Both then replay from the same recordings.
     toggled = LayerSwitches(
         hidden_text=False, screening=False, hardening=False, output_guard=False, tool_guard=False
+    )
+    store = RecordingStore(tmp_path)
+    for layers in (ONLY_TOOL_GUARD, toggled):
+        run(
+            "inbox.hidden_forward",
+            inbox_script(FORWARD),
+            layers=layers,
+            store=store,
+            mode="record",
+        )
+    guarded, _ = run(
+        "inbox.hidden_forward",
+        None,
+        layers=ONLY_TOOL_GUARD,
+        store=RecordingStore(tmp_path),
+        mode="replay",
     )
     events, _ = run(
         "inbox.hidden_forward", None, layers=toggled, store=RecordingStore(tmp_path), mode="replay"
     )
+    assert last(guarded, "run.finished")["outcome"] != "hijacked"
     assert last(events, "run.finished")["outcome"] == "hijacked"
 
 

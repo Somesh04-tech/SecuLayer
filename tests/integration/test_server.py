@@ -47,7 +47,7 @@ def make_settings(tmp_path: Path, **values: object) -> TmpSettings:
 
 @pytest.fixture
 def client(tmp_path: Path, dist: Path) -> TestClient:
-    return TestClient(create_app(make_settings(tmp_path), dist_dir=dist))
+    return TestClient(create_app(make_settings(tmp_path), dist_dir=dist, warm=False))
 
 
 def test_health(client: TestClient) -> None:
@@ -88,7 +88,7 @@ def test_meta_defaults_offline(client: TestClient) -> None:
 def test_meta_never_exposes_the_key(tmp_path: Path, dist: Path) -> None:
     key = "sk-test-not-a-real-key-0123456789"
     settings = make_settings(tmp_path, OPENAI_API_KEY=key)
-    client = TestClient(create_app(settings, mode="live", dist_dir=dist))
+    client = TestClient(create_app(settings, mode="live", dist_dir=dist, warm=False))
     response = client.get("/api/meta")
     assert response.json()["live_available"] is True
     assert response.json()["mode"] == "live"
@@ -105,7 +105,7 @@ def test_meta_budget_reads_spend_log(tmp_path: Path, dist: Path) -> None:
     settings.spend_log.write_text(
         "\n".join(json.dumps(line) for line in lines) + "\nnot json\n", encoding="utf-8"
     )
-    body = TestClient(create_app(settings, dist_dir=dist)).get("/api/meta").json()
+    body = TestClient(create_app(settings, dist_dir=dist, warm=False)).get("/api/meta").json()
     assert body["budget"] == {"limit": 10_000, "used": 6_500, "remaining": 3_500}
 
 
@@ -114,7 +114,7 @@ def test_meta_counts_recordings(tmp_path: Path, dist: Path) -> None:
     folder = settings.recordings_dir / "gpt-5.4-mini-2026-03-17"
     folder.mkdir(parents=True)
     (folder / "inbox.jsonl.gz").write_bytes(b"\x1f\x8b")
-    body = TestClient(create_app(settings, dist_dir=dist)).get("/api/meta").json()
+    body = TestClient(create_app(settings, dist_dir=dist, warm=False)).get("/api/meta").json()
     assert body["recordings"] == {"files": 1, "models": ["gpt-5.4-mini-2026-03-17"]}
 
 
@@ -148,7 +148,9 @@ def test_no_path_traversal_out_of_dist(client: TestClient) -> None:
 
 
 def test_missing_frontend_explains_itself(tmp_path: Path) -> None:
-    client = TestClient(create_app(make_settings(tmp_path), dist_dir=tmp_path / "missing"))
+    client = TestClient(
+        create_app(make_settings(tmp_path), dist_dir=tmp_path / "missing", warm=False)
+    )
     response = client.get("/")
     assert response.status_code == 503
     assert "./run.sh" in response.text
