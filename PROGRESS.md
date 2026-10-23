@@ -6,7 +6,7 @@ Plan: docs/PLAN.md · Last updated: 2026-10-23, session 2
 |----|------|-------------------------------------------|-------------|--------|
 | M1 | Foundation | done | make check (43 pytest, 20 Vitest), make e2e (8 Playwright tests), screenshots m1-*.png reviewed, run.sh curl checks, doctor, storage check | see `git log` ("M1: foundation …") |
 | M2 | SecuLayer core and scenario data | done, except the committed classifier score cache (see Known issues) | make check (unit tests for every layer, data validation), `seculayer screen --case inbox.hidden_forward` with and without the cleaner | see `git log` ("M2: SecuLayer layers, …") |
-| M3 | Model gateway, toy apps and run API | in progress (next commit) | | |
+| M3 | Model gateway, toy apps and run API | in progress: all code and tests done; the first recordings and `doctor --online` need OPENAI_API_KEY | make check (371 pytest, 20 Vitest, lint, typecheck), make e2e (8 Playwright tests), make types | see `git log` ("M3: model gateway, …") |
 | M4 | Attack Lab, part 1 (run both ways) | not started | | |
 | M5 | Attack Lab, part 2 (show the mechanism) | not started | | |
 | M6 | Attack qualification and full recordings | not started | | |

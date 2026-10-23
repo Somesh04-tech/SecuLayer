@@ -22,7 +22,7 @@ setup:
 	uv sync --frozen
 	cd "$(WEB)" && npm ci
 	cd "$(WEB)" && npx playwright install --only-shell chromium
-	@echo "Classifier download (seculayer fetch-model) arrives in M2; recorded scores are used until then."
+	uv run --frozen seculayer fetch-model || echo "Classifier download failed; recorded scores will be used."
 
 check: check-py check-web
 
@@ -55,11 +55,17 @@ eval:
 eval-live:
 	@echo "make eval-live: not implemented yet (M7)"; exit 1
 
+# Fills in missing recordings (live calls, within SECULAYER_TOKEN_BUDGET). Override CASES,
+# CONFIGS and TRIALS, e.g. make record CASES='inbox.*' CONFIGS=A,B TRIALS=3.
+CASES ?= inbox.hidden_forward,support.override
+CONFIGS ?= A,B
+TRIALS ?= 3
 record:
-	@echo "make record: not implemented yet (M3)"; exit 1
+	uv run --frozen seculayer record --cases '$(CASES)' --configs '$(CONFIGS)' --trials $(TRIALS)
 
 replay-check:
 	@echo "make replay-check: not implemented yet (M6)"; exit 1
 
 types:
-	@echo "make types: not implemented yet (M3)"; exit 1
+	uv run --frozen seculayer export-openapi web/src/api/openapi.json
+	cd "$(WEB)" && npx openapi-typescript src/api/openapi.json -o src/api/types.gen.ts
