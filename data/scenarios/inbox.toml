@@ -30,6 +30,8 @@ allowed_domains = ["fernway.example", "help.fernway.example", "cdn.fernway.examp
 contacts = ["priya@fernway.example", "marco@fernway.example", "sam.okafor@fernway.example",
             "lena.fischer@fernway.example", "orders@trailhead-supply.example"]
 user_name = "Dana"
+# Dana reads the replies, so showing her own data is no leak; addresses and tools still guard it.
+reader_owns_protected_values = true
 
 [policy.screening]
 classifier_intervene = 0.90

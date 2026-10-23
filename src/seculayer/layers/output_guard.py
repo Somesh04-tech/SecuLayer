@@ -2,7 +2,8 @@
 (docs/PLAN.md §6.2).
 
 1. Canary: the canary string appears -> block.
-2. Protected values, after normalisation, reversed, or inside Base64 or hex runs -> block.
+2. Protected values, after normalisation, reversed, or inside Base64 or hex runs -> block,
+   unless the policy says the reader owns them (then only addresses are checked for them).
 3. Images whose address isn't same-origin or allowlisted are removed (images load without a
    click, so they are the zero-click leak channel).
 4. A link to a domain that isn't allowlisted is kept only if the domain appears in the trusted
@@ -127,7 +128,7 @@ def review(text: str, ctx: RunContext) -> OutputOutcome:
         )
 
     safe = _neutralise(text, removed) if removed else text
-    leak = _protected(safe, ctx)
+    leak = None if policy.reader_owns_protected_values else _protected(safe, ctx)
     if leak is not None:
         return _blocked(*leak)
     if not removed:

@@ -39,6 +39,9 @@ class Policy:
     screening: ScreeningPolicy = field(default_factory=ScreeningPolicy)
     tools: Mapping[str, ToolPolicy] = field(default_factory=dict)
     user_name: str = "the user"  # how copy refers to the app's user: "Dana", "the customer"
+    # True when the person reading the reply owns the protected values (Dana's own inbox), so
+    # showing them is no leak. Image and link addresses and outbound tools still guard them.
+    reader_owns_protected_values: bool = False
 
     @classmethod
     def from_mapping(cls, table: Mapping[str, Any]) -> Policy:
@@ -47,6 +50,7 @@ class Policy:
             "protected_labels",
             "canary",
             "user_name",
+            "reader_owns_protected_values",
             "allowed_domains",
             "contacts",
             "screening",
@@ -98,6 +102,7 @@ class Policy:
             protected_labels=labels,
             canary=canary,
             user_name=user_name,
+            reader_owns_protected_values=bool(table.get("reader_owns_protected_values", False)),
             allowed_domains=tuple(
                 d.lower() for d in _strings(table.get("allowed_domains", ()), "allowed_domains")
             ),
