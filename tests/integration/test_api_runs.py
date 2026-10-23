@@ -29,6 +29,7 @@ def record(
     *,
     protected: bool,
     layers: LayerSwitches | None = None,
+    trial: int = 1,
 ) -> None:
     store = RecordingStore(settings.recordings_dir)
     request = RunRequest(
@@ -36,6 +37,7 @@ def record(
         protected,
         MODEL,
         (layers or LayerSwitches()) if protected else LayerSwitches.all_off(),
+        trial,
         on_confirm="approve",
     )
     runner = AgentRunner(
@@ -90,6 +92,30 @@ def test_streamed_replay_runs(recorded: Any, tmp_path: Path) -> None:
     )
     assert protected[-1]["outcome"] == "stopped"
     assert protected[-1]["banner"]["title"] == "Safe"
+
+
+def test_attacks_default_to_the_first_hijacked_recorded_trial(tmp_path: Path) -> None:
+    settings = make_settings(tmp_path)
+    resisted = inbox_script(None, final="Five routine emails.")
+    record(settings, "inbox.hidden_forward", resisted, protected=False, trial=1)
+    record(settings, "inbox.hidden_forward", inbox_script(FORWARD), protected=False, trial=2)
+    record(settings, "inbox.hidden_forward", resisted, protected=False, trial=3)
+    cases = {
+        c["id"]: c
+        for c in client_for(settings, tmp_path).get("/api/scenarios/inbox").json()["cases"]
+    }
+    assert cases["inbox.hidden_forward"]["recorded"] == {
+        "trials": 3,
+        "hijacked": [2],
+        "default_trial": 2,
+    }
+    assert cases["inbox.fake_system"]["recorded"] == {
+        "trials": 0,
+        "hijacked": [],
+        "default_trial": 1,
+    }
+    assert cases["inbox.hidden_forward.v_comment"]["recorded"] is None
+    assert cases["inbox.n_morning"]["recorded"] is None
 
 
 def test_unrecorded_combination(recorded: Any, tmp_path: Path) -> None:

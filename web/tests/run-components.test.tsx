@@ -225,4 +225,54 @@ describe("RunArea", () => {
     expect(within(column).getByText("Declined")).toBeInTheDocument();
     expect(within(column).getByText("Live run")).toBeInTheDocument();
   });
+
+  it("replays the first hijacked recorded trial and says how often the attack worked", async () => {
+    const bodies: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (path: string, init?: RequestInit) => {
+        if (path === "/api/meta") return new Response(JSON.stringify({ ...META, mode: "replay" }));
+        bodies.push(JSON.parse(String(init?.body)));
+        return ndjson([
+          { ...STARTED, protected: false, mode: "replay", trial: 2, trials_available: 3 },
+          {
+            type: "run.finished",
+            outcome: "hijacked",
+            banner: {
+              title: "Hijacked",
+              sentence: "the assistant emailed archive@mail-backup.example.",
+            },
+            stopped_by: null,
+            checks: {},
+            reply_markdown: "Done.",
+            actions: [],
+            cost_usd: 0,
+          },
+        ]);
+      }),
+    );
+    const recordedCase = {
+      ...CASE,
+      recorded: { trials: 3, hijacked: [2], default_trial: 2 },
+    } as unknown as CaseDetail;
+    render(
+      <MetaProvider>
+        <TooltipProvider>
+          <RunArea scenario={SCENARIO} caseDetail={recordedCase} />
+        </TooltipProvider>
+      </MetaProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Run without SecuLayer" }));
+    const column = screen.getByRole("region", { name: "Without SecuLayer" });
+    await waitFor(() =>
+      expect(within(column).getByTestId("recorded-count")).toHaveTextContent(
+        "The attack worked in 1 of 3 recorded runs.",
+      ),
+    );
+    expect(bodies[0]).toMatchObject({
+      case_id: "inbox.polite_invoice",
+      protected: false,
+      trial: 2,
+    });
+  });
 });

@@ -284,6 +284,16 @@
               }
             ]
           },
+          "recorded": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecordedRunsInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "setup": {
             "additionalProperties": true,
             "title": "Setup",
@@ -353,7 +363,8 @@
           "expected",
           "why_here",
           "real_world",
-          "setup"
+          "setup",
+          "recorded"
         ],
         "title": "CaseDetail",
         "type": "object"
@@ -905,6 +916,33 @@
           }
         },
         "title": "RealWorld",
+        "type": "object"
+      },
+      "RecordedRunsInfo": {
+        "description": "The unprotected runs recorded for the target model (replay).",
+        "properties": {
+          "default_trial": {
+            "title": "Default Trial",
+            "type": "integer"
+          },
+          "hijacked": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Hijacked",
+            "type": "array"
+          },
+          "trials": {
+            "title": "Trials",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "trials",
+          "hijacked",
+          "default_trial"
+        ],
+        "title": "RecordedRunsInfo",
         "type": "object"
       },
       "RecordingsInfo": {

@@ -99,7 +99,10 @@ export function RunColumn({
   const meta = useMeta();
   const live = meta.status === "ok" && meta.data.mode === "live";
   const liveAvailable = meta.status === "ok" && meta.data.live_available;
-  const [trial, setTrial] = useState(1);
+  // Replay opens on the first recorded trial in which the unprotected run was hijacked.
+  const recorded = caseDetail.recorded;
+  const defaultTrial = recorded?.default_trial ?? 1;
+  const [trial, setTrial] = useState(defaultTrial);
   const { state } = run;
   const userName = scenario.user_name;
   const busy = state.status === "running";
@@ -132,7 +135,7 @@ export function RunColumn({
           variant={primary ? "primary" : "secondary"}
           icon={Play}
           disabled={busy}
-          onClick={() => start(1)}
+          onClick={() => start(defaultTrial)}
         >
           {copy.button}
         </Button>
@@ -238,6 +241,12 @@ export function RunColumn({
             onChange={start}
           />
         ))}
+
+      {side === "without" && started?.mode === "replay" && recorded && recorded.trials > 0 && (
+        <p className="text-small text-ink-2" data-testid="recorded-count">
+          The attack worked in {recorded.hijacked.length} of {recorded.trials} recorded runs.
+        </p>
+      )}
 
       {side === "with" && (
         <Pipeline layers={state.layers} verdicts={state.verdicts} userName={userName} />

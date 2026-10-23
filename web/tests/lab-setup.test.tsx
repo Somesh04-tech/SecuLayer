@@ -54,6 +54,7 @@ function makeCase(overrides: Partial<CaseDetail>): CaseDetail {
     why_here: "",
     real_world: null,
     setup: {},
+    recorded: null,
     ...overrides,
   };
 }

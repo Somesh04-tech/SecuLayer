@@ -278,6 +278,7 @@ export interface components {
              */
             kind: "attack" | "normal";
             real_world: components["schemas"]["RealWorld"] | null;
+            recorded: components["schemas"]["RecordedRunsInfo"] | null;
             /** Setup */
             setup: {
                 [key: string]: unknown;
@@ -508,6 +509,18 @@ export interface components {
              * @default
              */
             url: string;
+        };
+        /**
+         * RecordedRunsInfo
+         * @description The unprotected runs recorded for the target model (replay).
+         */
+        RecordedRunsInfo: {
+            /** Default Trial */
+            default_trial: number;
+            /** Hijacked */
+            hijacked: number[];
+            /** Trials */
+            trials: number;
         };
         /** RecordingsInfo */
         RecordingsInfo: {

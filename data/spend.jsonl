@@ -1,1 +1,16 @@
 {"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 21, "tokens": 15954, "cost_usd": 0.022392, "label": "record inbox.hidden_forward,support.override A,B x3"}
+{"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 1, "tokens": 222, "cost_usd": 0.000316, "label": "live run support.override"}
+{"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 2, "tokens": 1653, "cost_usd": 0.002279, "label": "seculayer run inbox.hidden_forward"}
+{"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 1, "tokens": 421, "cost_usd": 0.000721, "label": "live run support.override"}
+{"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 2, "tokens": 1646, "cost_usd": 0.002247, "label": "seculayer run inbox.hidden_forward"}
+{"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 2, "tokens": 1664, "cost_usd": 0.002328, "label": "seculayer run inbox.hidden_forward"}
+{"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 2, "tokens": 1764, "cost_usd": 0.002373, "label": "seculayer run inbox.hidden_forward"}
+{"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 3, "tokens": 3933, "cost_usd": 0.004414, "label": "seculayer run inbox.hidden_forward"}
+{"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 2, "tokens": 1756, "cost_usd": 0.001646, "label": "seculayer run inbox.hidden_forward"}
+{"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 1, "tokens": 243, "cost_usd": 0.000325, "label": "seculayer run support.override"}
+{"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 1, "tokens": 241, "cost_usd": 0.000316, "label": "seculayer run support.override"}
+{"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 1, "tokens": 238, "cost_usd": 0.000302, "label": "seculayer run support.override"}
+{"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 1, "tokens": 255, "cost_usd": 0.000398, "label": "seculayer run support.override"}
+{"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 1, "tokens": 243, "cost_usd": 0.000344, "label": "seculayer run support.override"}
+{"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 1, "tokens": 407, "cost_usd": 0.001081, "label": "seculayer run support.override"}
+{"date": "2026-10-23", "model": "gpt-5.4-mini-2026-03-17", "calls": 10, "tokens": 8336, "cost_usd": 0.010462, "label": "record inbox.hidden_forward,support.override A,B x3"}

@@ -119,7 +119,7 @@ def test_cleaner_stops_the_featured_attack_and_the_reply_is_shown() -> None:
     assert finished["outcome"] == "stopped" and finished["stopped_by"] == "hidden_text"
     assert finished["banner"]["title"] == "Safe"
     assert finished["banner"]["sentence"].startswith(
-        "stopped by the hidden-text cleaner. Removed 1"
+        "stopped by the hidden-text cleaner. Removed 2"
     )
     assert finished["reply_markdown"] == "Five emails: all routine."
     verdicts = {

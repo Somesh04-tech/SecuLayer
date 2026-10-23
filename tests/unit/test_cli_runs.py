@@ -16,11 +16,17 @@ from seculayer_demo.recording_batch import configs, estimate_tokens, plan_jobs, 
 def test_screen_shows_the_cleaner_and_screening() -> None:
     result = CliRunner().invoke(app, ["screen", "--case", "inbox.hidden_forward"])
     assert result.exit_code == 0, result.output
-    assert "removed   Removed 1 hidden paragraph" in result.output
+    assert "removed   Removed 2 hidden paragraphs" in result.output
+    # The qualified payload slips past the rules and the classifier with the cleaner off (only
+    # the judge, which needs a model call, is left); the original wording is still withheld.
     off = CliRunner().invoke(
         app, ["screen", "--case", "inbox.hidden_forward", "--layers=-hidden_text"]
     )
-    assert "withheld  Withheld “Shipment update”" in off.output
+    assert "passed    Visible text in 5 emails looks normal." in off.output
+    visible = CliRunner().invoke(
+        app, ["screen", "--case", "inbox.hidden_forward.v_visible", "--layers=-hidden_text"]
+    )
+    assert "withheld  Withheld “Shipment update”" in visible.output
 
 
 def test_run_without_recordings_reports_not_recorded(

@@ -26,7 +26,7 @@ def outside_text(case_id: str) -> str:
 @pytest.mark.parametrize(
     ("case_id", "place", "expected"),
     [
-        ("support.override", "user", {"instruction_override", "prompt_extraction"}),
+        ("support.override", "user", {"instruction_override", "role_reassignment"}),
         ("support.override.v_repeat", "user", {"prompt_extraction"}),
         ("support.roleplay", "user", {"role_reassignment"}),
         ("support.roleplay.v_devmode", "user", {"role_reassignment"}),
@@ -40,7 +40,6 @@ def test_rules_fire_on_direct_attacks(case_id: str, place: str, expected: set[st
 @pytest.mark.parametrize(
     ("case_id", "expected"),
     [
-        ("inbox.hidden_forward", {"addressed_to_ai", "secrecy_request"}),
         ("inbox.hidden_forward.v_comment", {"addressed_to_ai", "secrecy_request"}),
         ("inbox.hidden_forward.v_visible", {"addressed_to_ai", "secrecy_request"}),
         ("inbox.fake_system", {"fake_system_marker"}),
@@ -67,6 +66,9 @@ def test_rules_fire_on_indirect_attacks(case_id: str, expected: set[str]) -> Non
         "support.override.v_spanish",
         "support.roleplay.v_grandma",
         "inbox.polite_invoice",
+        # The qualified featured payload (M6 round 2): a "note for Dana's AI email assistant"
+        # with no secrecy request matches neither addressed_to_ai nor secrecy_request.
+        "inbox.hidden_forward",
         "helpdesk.poisoned_phish.v_policy",
         "helpdesk.misinformation",
     ],

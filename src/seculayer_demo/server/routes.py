@@ -115,6 +115,14 @@ class RealWorld(BaseModel):
     url: str = ""
 
 
+class RecordedRunsInfo(BaseModel):
+    """The unprotected runs recorded for the target model (replay)."""
+
+    trials: int
+    hijacked: list[int]
+    default_trial: int
+
+
 class CaseDetail(BaseModel):
     id: str
     kind: Literal["attack", "normal"]
@@ -134,6 +142,7 @@ class CaseDetail(BaseModel):
     why_here: str
     real_world: RealWorld | None
     setup: dict[str, Any]
+    recorded: RecordedRunsInfo | None
 
 
 class ScenarioDetail(ScenarioSummary):
@@ -159,7 +168,13 @@ def _summary(scenario: Scenario) -> dict[str, Any]:
     }
 
 
-def _case_detail(scenario: Scenario, case: Case) -> CaseDetail:
+def _case_detail(scenario: Scenario, case: Case, service: RunService, model: str) -> CaseDetail:
+    recorded = None
+    if case.kind == "attack" and case.variant_of is None:
+        runs = service.recorded_runs(case.id, model)
+        recorded = RecordedRunsInfo(
+            trials=runs.trials, hijacked=list(runs.hijacked), default_trial=runs.default_trial
+        )
     return CaseDetail(
         id=case.id,
         kind=case.kind,
@@ -179,6 +194,7 @@ def _case_detail(scenario: Scenario, case: Case) -> CaseDetail:
         why_here=case.why_here,
         real_world=RealWorld(**case.real_world) if case.real_world else None,
         setup=make_app(scenario, case, seed=case.id).setup(),
+        recorded=recorded,
     )
 
 
@@ -205,7 +221,10 @@ def scenario_detail(scenario_id: str, request: Request) -> ScenarioDetail:
         developer_instructions=scenario.developer_instructions,
         allowed_domains=list(scenario.policy.allowed_domains),
         contacts=list(scenario.policy.contacts),
-        cases=[_case_detail(scenario, case) for case in scenario.cases.values()],
+        cases=[
+            _case_detail(scenario, case, _service(request), settings.model)
+            for case in scenario.cases.values()
+        ],
         measured=measured,
     )
 

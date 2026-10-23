@@ -97,3 +97,6 @@
 {"sha256": "dcd556e45606c6a89facf28ee112a80d80838ea0249bd2ddc339c89dd20b888e", "score": 0.000907, "model": "prompt-guard-2-22m"}
 {"sha256": "fcac80fcb75b2aeb2240e7ff4d9484307a643dbe6a01ea9de72145fac026ff6e", "score": 0.001105, "model": "prompt-guard-2-22m"}
 {"sha256": "0e58546605b4ff30592a8d1d257a79d62dcb4f1e0bb6ecb2d161b47055b31a86", "score": 0.000588, "model": "prompt-guard-2-22m"}
+{"sha256": "d5dd9f0259fa12aeccec379b4c08cb12178e3294d6cb6b0cf1d0003ea7bec131", "score": 0.002888, "model": "prompt-guard-2-22m"}
+{"sha256": "7b212ca7fe754bf75f40814430d553305e25369449feab404fec0f73a5e34be0", "score": 0.005729, "model": "prompt-guard-2-22m"}
+{"sha256": "5185f21355ff82a6960ee8d25a3cf0d35cbf0d1290609dbf66b912ff00f424bd", "score": 0.994869, "model": "prompt-guard-2-22m"}

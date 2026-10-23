@@ -18,10 +18,23 @@ from seculayer_demo.config import Settings
 from seculayer_demo.gateway import ModelGateway, RecordingStore, TokenBudget
 from seculayer_demo.gateway.openai_client import GatewayMode, OpenAITransport, Transport
 from seculayer_demo.runner import AgentRunner, RunRequest
-from seculayer_demo.server.events import RunPaused, to_line
+from seculayer_demo.server.events import RunFinished, RunPaused, RunStarted, to_line
 
 PAUSED_TTL_S = 600.0  # paused runs are kept for 10 minutes (docs/PLAN.md §6.9)
 RunGenerator = Generator[BaseModel, bool | None, None]
+
+
+@dataclass(frozen=True)
+class RecordedRuns:
+    """The unprotected runs recorded for an attack: how many, and which were hijacked."""
+
+    trials: int
+    hijacked: tuple[int, ...]
+
+    @property
+    def default_trial(self) -> int:
+        # The first hijacked trial, so replay shows the attack working (docs/PLAN.md §6.8).
+        return self.hijacked[0] if self.hijacked else 1
 
 
 def classifier_cache_path(settings: Settings) -> Path:
@@ -107,6 +120,8 @@ class RunService:
         self.classifier = make_classifier(settings)
         self.paused = PausedRuns()
         self._transport = transport
+        self._recorded: dict[tuple[str, str, int], RecordedRuns] = {}
+        self._recorded_lock = threading.Lock()
 
     def transport(self) -> Transport | None:
         if self.mode == "replay":
@@ -117,6 +132,31 @@ class RunService:
 
     def gateway(self) -> ModelGateway:
         return ModelGateway(self.mode, self.store, transport=self.transport(), budget=self.budget)
+
+    def recorded_runs(self, case_id: str, model: str) -> RecordedRuns:
+        """Replay every recorded trial of the unprotected run (no model calls). Cached until the
+        recording store changes."""
+        key = (case_id, model, len(self.store))
+        with self._recorded_lock:
+            if key in self._recorded:
+                return self._recorded[key]
+        replay = ModelGateway("replay", self.store)
+        trials, hijacked, trial = 0, [], 1
+        while trial == 1 or trial <= trials:
+            request = RunRequest(case_id, False, model, LayerSwitches.all_off(), trial, "stop")
+            runner = AgentRunner(
+                request, gateway=replay, judge_model=model, classifier=None, run_id="recorded"
+            )
+            for event in runner.events():
+                if isinstance(event, RunStarted):
+                    trials = max(trials, event.trials_available)
+                elif isinstance(event, RunFinished) and event.outcome == "hijacked":
+                    hijacked.append(trial)
+            trial += 1
+        result = RecordedRuns(trials, tuple(hijacked))
+        with self._recorded_lock:
+            self._recorded[key] = result
+        return result
 
     def start(self, request: RunRequest) -> tuple[AgentRunner, RunGenerator]:
         runner = AgentRunner(
