@@ -18,7 +18,6 @@ from typing import Literal
 from seculayer_demo.config import REPO_ROOT, Settings
 from seculayer_demo.status import (
     app_version,
-    classifier_files_present,
     recordings_summary,
     tokens_used,
 )
@@ -149,14 +148,32 @@ def run_checks(settings: Settings) -> Iterator[Check]:
         "set" if settings.has_api_key else "not set; live mode is unavailable, replay works",
     )
 
+    from seculayer_demo.fetch_model import verify
+
     classifier = settings.classifier_path
-    yield Check(
-        "ok" if classifier_files_present(classifier) else "warn",
-        "Classifier",
-        "files present (hash check arrives with fetch-model in M2)"
-        if classifier_files_present(classifier)
-        else f"not downloaded ({classifier}); recorded scores will be used",
-    )
+    verified = verify(classifier)
+    if verified.ok:
+        yield Check("ok", "Classifier", "present and hash-checked")
+    elif verified.mismatched:
+        yield Check(
+            "fail",
+            "Classifier",
+            f"present but hash mismatch ({', '.join(verified.mismatched)}); "
+            "run uv run seculayer fetch-model",
+        )
+    elif verified.any_present:
+        missing = [name for name, state in verified.states.items() if state == "missing"]
+        yield Check(
+            "warn",
+            "Classifier",
+            f"incomplete (missing {', '.join(missing)}); run uv run seculayer fetch-model",
+        )
+    else:
+        yield Check(
+            "warn",
+            "Classifier",
+            f"not downloaded ({classifier}); recorded scores will be used",
+        )
 
     recordings = recordings_summary(settings.recordings_dir)
     yield Check(

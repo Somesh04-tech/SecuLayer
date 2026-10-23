@@ -85,5 +85,35 @@ def doctor(
         raise typer.Exit(1)
 
 
+@app.command("fetch-model")
+def fetch_model(
+    verify_only: Annotated[
+        bool, typer.Option("--verify-only", help="Only check the files already present.")
+    ] = False,
+) -> None:
+    """Download the pinned classifier files from Hugging Face and check their SHA-256."""
+    from seculayer_demo.fetch_model import FetchError, fetch, load_manifest, verify
+
+    settings = _load_settings()
+    manifest = load_manifest()
+    directory = settings.classifier_path
+    if verify_only:
+        result = verify(directory, manifest)
+        for name, state in result.states.items():
+            typer.echo(f"  {state:<9} {name}")
+        raise typer.Exit(0 if result.ok else 1)
+
+    typer.echo(f"Classifier {manifest.name} at revision {manifest.revision[:12]} into {directory}")
+    try:
+        result = fetch(directory, manifest, log=typer.echo)
+    except FetchError as error:
+        typer.echo(f"Download failed: {error}", err=True)
+        raise typer.Exit(1) from None
+    if not result.ok:
+        typer.echo(f"Some files don't match the manifest: {result.states}", err=True)
+        raise typer.Exit(1)
+    typer.echo("All classifier files present and hash-checked.")
+
+
 if __name__ == "__main__":
     app()

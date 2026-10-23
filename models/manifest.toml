@@ -1,0 +1,39 @@
+# The injection classifier: Meta Llama Prompt Guard 2 22M, int8 ONNX export by gravitee-io.
+# `uv run seculayer fetch-model` downloads these files into models/prompt-guard-2-22m/
+# (gitignored) and keeps a file only if its size and SHA-256 match. docs/PLAN.md §8.1.
+#
+# License: Llama 4 Community License. Using it requires the "Built with Llama" credit,
+# shown on the Sources page.
+#
+# Hosts: huggingface.co answers small files with a relative redirect on huggingface.co
+# itself and LFS files (model.quant.onnx) with a redirect to Hugging Face's CDN under
+# *.hf.co (observed 2026-10-23: us.aws.cdn.hf.co). Any other host is refused.
+
+[model]
+name = "prompt-guard-2-22m"
+repo = "gravitee-io/Llama-Prompt-Guard-2-22M-onnx"
+revision = "da68d0f6023c7aeaf6b256eec549de295d5e8740"
+url_template = "https://huggingface.co/{repo}/resolve/{revision}/{file}"
+allowed_hosts = ["huggingface.co", ".huggingface.co", ".hf.co"]
+license = "Llama 4 Community License"
+
+[[file]]
+name = "model.quant.onnx"
+bytes = 72542430
+sha256 = "38c3f03e30a4d5d229aeb7bf638e778322f8179d0ed0d4953eb22f88d8e0cf6b"
+
+[[file]]
+name = "tokenizer.json"
+bytes = 8649291
+sha256 = "92c8b45d0b12ae0dd9680fbfe9804503542c377d65838558cd0b48a795385dde"
+
+# Recorded on first download, 2026-10-23.
+[[file]]
+name = "LICENSE"
+bytes = 7553
+sha256 = "90ae4807183070953bd8da5d7be81c4494920fb54c74359383c8a4536bf003c3"
+
+[[file]]
+name = "NOTICE"
+bytes = 111
+sha256 = "6d70b1303958ace2c652d10ffcb63cdd8436d49bc0e81c97373df4e329fad0c9"
