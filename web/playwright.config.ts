@@ -28,7 +28,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `uv run seculayer serve --port ${PORT} --mode replay`,
+    command: `uv run --frozen seculayer serve --port ${PORT} --mode replay`,
     cwd: "..",
     url: `http://127.0.0.1:${PORT}/api/health`,
     reuseExistingServer: false,

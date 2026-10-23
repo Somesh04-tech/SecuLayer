@@ -1,0 +1,1954 @@
+{
+  "components": {
+    "schemas": {
+      "ActionOut": {
+        "additionalProperties": false,
+        "properties": {
+          "arguments": {
+            "additionalProperties": true,
+            "title": "Arguments",
+            "type": "object"
+          },
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "done",
+              "blocked",
+              "awaiting_approval",
+              "declined"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id",
+          "name",
+          "arguments",
+          "status"
+        ],
+        "title": "ActionOut",
+        "type": "object"
+      },
+      "AnatomyMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "parts": {
+            "items": {
+              "$ref": "#/components/schemas/AnatomyPart"
+            },
+            "title": "Parts",
+            "type": "array"
+          },
+          "role": {
+            "enum": [
+              "developer",
+              "user",
+              "assistant",
+              "tool_call",
+              "tool_result"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "tool_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Name"
+          }
+        },
+        "required": [
+          "role",
+          "label",
+          "parts"
+        ],
+        "title": "AnatomyMessage",
+        "type": "object"
+      },
+      "AnatomyPart": {
+        "additionalProperties": false,
+        "properties": {
+          "hidden": {
+            "default": false,
+            "title": "Hidden",
+            "type": "boolean"
+          },
+          "hidden_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "css",
+                  "comment",
+                  "tag_chars",
+                  "zero_width"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hidden Kind"
+          },
+          "removed": {
+            "default": false,
+            "title": "Removed",
+            "type": "boolean"
+          },
+          "segment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment Id"
+          },
+          "source": {
+            "enum": [
+              "developer",
+              "user",
+              "external",
+              "injected",
+              "seculayer",
+              "model"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "source"
+        ],
+        "title": "AnatomyPart",
+        "type": "object"
+      },
+      "AttackerEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "enum": [
+              "email",
+              "image",
+              "link",
+              "chat"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "data": {
+            "title": "Data",
+            "type": "string"
+          },
+          "destination": {
+            "title": "Destination",
+            "type": "string"
+          },
+          "type": {
+            "const": "attacker.event",
+            "default": "attacker.event",
+            "title": "Type",
+            "type": "string"
+          },
+          "zero_click": {
+            "title": "Zero Click",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "channel",
+          "destination",
+          "data",
+          "zero_click"
+        ],
+        "title": "AttackerEvent",
+        "type": "object"
+      },
+      "Banner": {
+        "additionalProperties": false,
+        "properties": {
+          "sentence": {
+            "title": "Sentence",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "sentence"
+        ],
+        "title": "Banner",
+        "type": "object"
+      },
+      "BudgetInfo": {
+        "properties": {
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "remaining": {
+            "title": "Remaining",
+            "type": "integer"
+          },
+          "used": {
+            "title": "Used",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "limit",
+          "used",
+          "remaining"
+        ],
+        "title": "BudgetInfo",
+        "type": "object"
+      },
+      "CaseDetail": {
+        "properties": {
+          "expected": {
+            "title": "Expected",
+            "type": "string"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "frameworks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Frameworks",
+            "type": "array"
+          },
+          "goal": {
+            "title": "Goal",
+            "type": "string"
+          },
+          "hard_case": {
+            "title": "Hard Case",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "injected_text": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Injected Text",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "attack",
+              "normal"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "real_world": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RealWorld"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "setup": {
+            "additionalProperties": true,
+            "title": "Setup",
+            "type": "object"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "user_request": {
+            "title": "User Request",
+            "type": "string"
+          },
+          "variant_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variant Of"
+          },
+          "variants": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Variants",
+            "type": "array"
+          },
+          "what_stops_it": {
+            "title": "What Stops It",
+            "type": "string"
+          },
+          "why_here": {
+            "title": "Why Here",
+            "type": "string"
+          },
+          "why_it_works": {
+            "title": "Why It Works",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "variant_of",
+          "variants",
+          "hard_case",
+          "tags",
+          "frameworks",
+          "user_request",
+          "injected_text",
+          "goal",
+          "explanation",
+          "why_it_works",
+          "what_stops_it",
+          "expected",
+          "why_here",
+          "real_world",
+          "setup"
+        ],
+        "title": "CaseDetail",
+        "type": "object"
+      },
+      "CheckOut": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "passed",
+          "detail"
+        ],
+        "title": "CheckOut",
+        "type": "object"
+      },
+      "Checks": {
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "utility": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Checks",
+        "type": "object"
+      },
+      "ClassifierInfo": {
+        "properties": {
+          "status": {
+            "enum": [
+              "present",
+              "missing"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "ClassifierInfo",
+        "type": "object"
+      },
+      "DecisionBody": {
+        "additionalProperties": false,
+        "properties": {
+          "approve": {
+            "title": "Approve",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "approve"
+        ],
+        "title": "DecisionBody",
+        "type": "object"
+      },
+      "Dialog": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "highlights": {
+            "items": {
+              "$ref": "#/components/schemas/Highlight"
+            },
+            "title": "Highlights",
+            "type": "array"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "to": {
+            "items": {
+              "type": "string"
+            },
+            "title": "To",
+            "type": "array"
+          }
+        },
+        "required": [
+          "to",
+          "subject",
+          "body",
+          "highlights",
+          "reason"
+        ],
+        "title": "Dialog",
+        "type": "object"
+      },
+      "FindingOut": {
+        "additionalProperties": false,
+        "properties": {
+          "detector": {
+            "title": "Detector",
+            "type": "string"
+          },
+          "excerpt": {
+            "title": "Excerpt",
+            "type": "string"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "segment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment Id"
+          },
+          "span": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Span"
+          }
+        },
+        "required": [
+          "detector",
+          "segment_id",
+          "span",
+          "excerpt",
+          "score",
+          "explanation"
+        ],
+        "title": "FindingOut",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Health": {
+        "properties": {
+          "status": {
+            "const": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "Health",
+        "type": "object"
+      },
+      "HiddenOut": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "kind",
+          "reason"
+        ],
+        "title": "HiddenOut",
+        "type": "object"
+      },
+      "Highlight": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "why": {
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "why"
+        ],
+        "title": "Highlight",
+        "type": "object"
+      },
+      "LayerStarted": {
+        "additionalProperties": false,
+        "properties": {
+          "layer": {
+            "enum": [
+              "hidden_text",
+              "screening",
+              "hardening",
+              "tool_guard",
+              "output_guard"
+            ],
+            "title": "Layer",
+            "type": "string"
+          },
+          "step": {
+            "title": "Step",
+            "type": "integer"
+          },
+          "type": {
+            "const": "layer.started",
+            "default": "layer.started",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer",
+          "step"
+        ],
+        "title": "LayerStarted",
+        "type": "object"
+      },
+      "LayerVerdict": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "passed",
+              "flagged",
+              "applied",
+              "removed",
+              "withheld",
+              "blocked",
+              "confirm",
+              "off",
+              "not_reached",
+              "unavailable"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "detail": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Detail",
+            "type": "array"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingOut"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "latency_ms": {
+            "title": "Latency Ms",
+            "type": "number"
+          },
+          "layer": {
+            "enum": [
+              "hidden_text",
+              "screening",
+              "hardening",
+              "tool_guard",
+              "output_guard"
+            ],
+            "title": "Layer",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "step": {
+            "title": "Step",
+            "type": "integer"
+          },
+          "type": {
+            "const": "layer.verdict",
+            "default": "layer.verdict",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer",
+          "step",
+          "action",
+          "reason",
+          "findings",
+          "latency_ms"
+        ],
+        "title": "LayerVerdict",
+        "type": "object"
+      },
+      "Meta": {
+        "properties": {
+          "budget": {
+            "$ref": "#/components/schemas/BudgetInfo"
+          },
+          "classifier": {
+            "$ref": "#/components/schemas/ClassifierInfo"
+          },
+          "live_available": {
+            "title": "Live Available",
+            "type": "boolean"
+          },
+          "mode": {
+            "enum": [
+              "replay",
+              "live"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "models": {
+            "$ref": "#/components/schemas/ModelsInfo"
+          },
+          "recordings": {
+            "$ref": "#/components/schemas/RecordingsInfo"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "mode",
+          "live_available",
+          "models",
+          "classifier",
+          "recordings",
+          "budget"
+        ],
+        "title": "Meta",
+        "type": "object"
+      },
+      "ModelRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "anatomy": {
+            "items": {
+              "$ref": "#/components/schemas/AnatomyMessage"
+            },
+            "title": "Anatomy",
+            "type": "array"
+          },
+          "call_index": {
+            "title": "Call Index",
+            "type": "integer"
+          },
+          "tokens_by_source": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Tokens By Source",
+            "type": "object"
+          },
+          "type": {
+            "const": "model.request",
+            "default": "model.request",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_index",
+          "anatomy",
+          "tokens_by_source"
+        ],
+        "title": "ModelRequest",
+        "type": "object"
+      },
+      "ModelResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "call_index": {
+            "title": "Call Index",
+            "type": "integer"
+          },
+          "latency_ms": {
+            "title": "Latency Ms",
+            "type": "number"
+          },
+          "output_text": {
+            "title": "Output Text",
+            "type": "string"
+          },
+          "recorded": {
+            "title": "Recorded",
+            "type": "boolean"
+          },
+          "recorded_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded At"
+          },
+          "tool_calls": {
+            "items": {
+              "$ref": "#/components/schemas/ToolCallOut"
+            },
+            "title": "Tool Calls",
+            "type": "array"
+          },
+          "trial": {
+            "title": "Trial",
+            "type": "integer"
+          },
+          "type": {
+            "const": "model.response",
+            "default": "model.response",
+            "title": "Type",
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          }
+        },
+        "required": [
+          "call_index",
+          "output_text",
+          "tool_calls",
+          "latency_ms",
+          "usage",
+          "recorded",
+          "recorded_at",
+          "trial"
+        ],
+        "title": "ModelResponse",
+        "type": "object"
+      },
+      "ModelsInfo": {
+        "properties": {
+          "compare": {
+            "title": "Compare",
+            "type": "string"
+          },
+          "judge": {
+            "title": "Judge",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target",
+          "compare",
+          "judge"
+        ],
+        "title": "ModelsInfo",
+        "type": "object"
+      },
+      "RealWorld": {
+        "properties": {
+          "date": {
+            "default": "",
+            "title": "Date",
+            "type": "string"
+          },
+          "title": {
+            "default": "",
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "default": "",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "title": "RealWorld",
+        "type": "object"
+      },
+      "RecordingsInfo": {
+        "properties": {
+          "files": {
+            "title": "Files",
+            "type": "integer"
+          },
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Models",
+            "type": "array"
+          }
+        },
+        "required": [
+          "files",
+          "models"
+        ],
+        "title": "RecordingsInfo",
+        "type": "object"
+      },
+      "RunBody": {
+        "additionalProperties": false,
+        "properties": {
+          "case_id": {
+            "title": "Case Id",
+            "type": "string"
+          },
+          "layers": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "boolean"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Layers"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "protected": {
+            "title": "Protected",
+            "type": "boolean"
+          },
+          "trial": {
+            "default": 1,
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Trial",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "case_id",
+          "protected"
+        ],
+        "title": "RunBody",
+        "type": "object"
+      },
+      "RunError": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          },
+          "type": {
+            "const": "run.error",
+            "default": "run.error",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "retryable"
+        ],
+        "title": "RunError",
+        "type": "object"
+      },
+      "RunFinished": {
+        "additionalProperties": false,
+        "properties": {
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/ActionOut"
+            },
+            "title": "Actions",
+            "type": "array"
+          },
+          "banner": {
+            "$ref": "#/components/schemas/Banner"
+          },
+          "checks": {
+            "$ref": "#/components/schemas/Checks"
+          },
+          "cost_usd": {
+            "title": "Cost Usd",
+            "type": "number"
+          },
+          "outcome": {
+            "enum": [
+              "hijacked",
+              "resisted",
+              "stopped",
+              "paused",
+              "completed",
+              "false_alarm",
+              "failed",
+              "error"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "reply_markdown": {
+            "title": "Reply Markdown",
+            "type": "string"
+          },
+          "stopped_by": {
+            "anyOf": [
+              {
+                "enum": [
+                  "hidden_text",
+                  "screening",
+                  "hardening",
+                  "tool_guard",
+                  "output_guard"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stopped By"
+          },
+          "type": {
+            "const": "run.finished",
+            "default": "run.finished",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "outcome",
+          "banner",
+          "stopped_by",
+          "checks",
+          "reply_markdown",
+          "actions",
+          "cost_usd"
+        ],
+        "title": "RunFinished",
+        "type": "object"
+      },
+      "RunPaused": {
+        "additionalProperties": false,
+        "properties": {
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "dialog": {
+            "$ref": "#/components/schemas/Dialog"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "run.paused",
+            "default": "run.paused",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "call_id",
+          "dialog"
+        ],
+        "title": "RunPaused",
+        "type": "object"
+      },
+      "RunStarted": {
+        "additionalProperties": false,
+        "properties": {
+          "case_id": {
+            "title": "Case Id",
+            "type": "string"
+          },
+          "layers": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "title": "Layers",
+            "type": "object"
+          },
+          "mode": {
+            "enum": [
+              "replay",
+              "live",
+              "record"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "protected": {
+            "title": "Protected",
+            "type": "boolean"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "trial": {
+            "title": "Trial",
+            "type": "integer"
+          },
+          "trials_available": {
+            "title": "Trials Available",
+            "type": "integer"
+          },
+          "type": {
+            "const": "run.started",
+            "default": "run.started",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "case_id",
+          "protected",
+          "model",
+          "mode",
+          "trial",
+          "trials_available",
+          "layers"
+        ],
+        "title": "RunStarted",
+        "type": "object"
+      },
+      "ScenarioDetail": {
+        "properties": {
+          "allowed_domains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Allowed Domains",
+            "type": "array"
+          },
+          "attack_count": {
+            "title": "Attack Count",
+            "type": "integer"
+          },
+          "card_summary": {
+            "title": "Card Summary",
+            "type": "string"
+          },
+          "cases": {
+            "items": {
+              "$ref": "#/components/schemas/CaseDetail"
+            },
+            "title": "Cases",
+            "type": "array"
+          },
+          "contacts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Contacts",
+            "type": "array"
+          },
+          "developer_instructions": {
+            "title": "Developer Instructions",
+            "type": "string"
+          },
+          "how_built": {
+            "items": {
+              "type": "string"
+            },
+            "title": "How Built",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "injection": {
+            "title": "Injection",
+            "type": "string"
+          },
+          "measured": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measured"
+          },
+          "normal_count": {
+            "title": "Normal Count",
+            "type": "integer"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "trifecta": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Trifecta",
+            "type": "object"
+          },
+          "user_name": {
+            "title": "User Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "card_summary",
+          "injection",
+          "trifecta",
+          "attack_count",
+          "normal_count",
+          "user_name",
+          "how_built",
+          "developer_instructions",
+          "allowed_domains",
+          "contacts",
+          "cases",
+          "measured"
+        ],
+        "title": "ScenarioDetail",
+        "type": "object"
+      },
+      "ScenarioSummary": {
+        "properties": {
+          "attack_count": {
+            "title": "Attack Count",
+            "type": "integer"
+          },
+          "card_summary": {
+            "title": "Card Summary",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "injection": {
+            "title": "Injection",
+            "type": "string"
+          },
+          "normal_count": {
+            "title": "Normal Count",
+            "type": "integer"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "trifecta": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Trifecta",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "card_summary",
+          "injection",
+          "trifecta",
+          "attack_count",
+          "normal_count"
+        ],
+        "title": "ScenarioSummary",
+        "type": "object"
+      },
+      "ScreenBody": {
+        "additionalProperties": false,
+        "properties": {
+          "as": {
+            "enum": [
+              "user",
+              "outside"
+            ],
+            "title": "As",
+            "type": "string"
+          },
+          "format": {
+            "default": "text",
+            "enum": [
+              "text",
+              "html"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "scenario_id": {
+            "title": "Scenario Id",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 20000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scenario_id",
+          "text",
+          "as"
+        ],
+        "title": "ScreenBody",
+        "type": "object"
+      },
+      "ScreenResult": {
+        "properties": {
+          "blocked": {
+            "title": "Blocked",
+            "type": "boolean"
+          },
+          "cleaned_text": {
+            "title": "Cleaned Text",
+            "type": "string"
+          },
+          "hidden": {
+            "items": {
+              "$ref": "#/components/schemas/HiddenOut"
+            },
+            "title": "Hidden",
+            "type": "array"
+          },
+          "verdicts": {
+            "items": {
+              "$ref": "#/components/schemas/VerdictOut"
+            },
+            "title": "Verdicts",
+            "type": "array"
+          },
+          "withheld": {
+            "title": "Withheld",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "verdicts",
+          "hidden",
+          "cleaned_text",
+          "blocked",
+          "withheld"
+        ],
+        "title": "ScreenResult",
+        "type": "object"
+      },
+      "ToolCallOut": {
+        "additionalProperties": false,
+        "properties": {
+          "arguments": {
+            "additionalProperties": true,
+            "title": "Arguments",
+            "type": "object"
+          },
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id",
+          "name",
+          "arguments"
+        ],
+        "title": "ToolCallOut",
+        "type": "object"
+      },
+      "ToolDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "allow",
+              "confirm",
+              "block",
+              "approved",
+              "declined"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "type": {
+            "const": "tool.decision",
+            "default": "tool.decision",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id",
+          "action",
+          "reason"
+        ],
+        "title": "ToolDecision",
+        "type": "object"
+      },
+      "ToolProposed": {
+        "additionalProperties": false,
+        "properties": {
+          "arguments": {
+            "additionalProperties": true,
+            "title": "Arguments",
+            "type": "object"
+          },
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "type": {
+            "const": "tool.proposed",
+            "default": "tool.proposed",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id",
+          "name",
+          "arguments"
+        ],
+        "title": "ToolProposed",
+        "type": "object"
+      },
+      "ToolResult": {
+        "additionalProperties": false,
+        "properties": {
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "type": {
+            "const": "tool.result",
+            "default": "tool.result",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id",
+          "summary"
+        ],
+        "title": "ToolResult",
+        "type": "object"
+      },
+      "Usage": {
+        "additionalProperties": false,
+        "properties": {
+          "cached_tokens": {
+            "default": 0,
+            "title": "Cached Tokens",
+            "type": "integer"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "input_tokens",
+          "output_tokens"
+        ],
+        "title": "Usage",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "VerdictOut": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "detail": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Detail",
+            "type": "array"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingOut"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "latency_ms": {
+            "title": "Latency Ms",
+            "type": "number"
+          },
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer",
+          "action",
+          "reason",
+          "findings",
+          "latency_ms",
+          "detail"
+        ],
+        "title": "VerdictOut",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "SecuLayer",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/eval/latest": {
+      "get": {
+        "operationId": "eval_latest_api_eval_latest_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "No evaluation results yet."
+          }
+        },
+        "summary": "Eval Latest"
+      }
+    },
+    "/api/health": {
+      "get": {
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/api/meta": {
+      "get": {
+        "operationId": "meta_api_meta_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Meta"
+      }
+    },
+    "/api/runs": {
+      "post": {
+        "operationId": "start_run_api_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/x-ndjson": {}
+            },
+            "description": "Run events, one per line."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Run"
+      }
+    },
+    "/api/runs/{run_id}/decision": {
+      "post": {
+        "operationId": "decide_api_runs__run_id__decision_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/x-ndjson": {}
+            },
+            "description": "More run events."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decide"
+      }
+    },
+    "/api/scenarios": {
+      "get": {
+        "operationId": "scenarios_api_scenarios_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ScenarioSummary"
+                  },
+                  "title": "Response Scenarios Api Scenarios Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Scenarios"
+      }
+    },
+    "/api/scenarios/{scenario_id}": {
+      "get": {
+        "operationId": "scenario_detail_api_scenarios__scenario_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scenario_id",
+            "required": true,
+            "schema": {
+              "title": "Scenario Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Scenario Detail"
+      }
+    },
+    "/api/schema/run-event": {
+      "get": {
+        "description": "Schema only: puts the run-event union into OpenAPI for the frontend's generated types.",
+        "operationId": "run_event_schema_api_schema_run_event_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "discriminator": {
+                      "mapping": {
+                        "attacker.event": "#/components/schemas/AttackerEvent",
+                        "layer.started": "#/components/schemas/LayerStarted",
+                        "layer.verdict": "#/components/schemas/LayerVerdict",
+                        "model.request": "#/components/schemas/ModelRequest",
+                        "model.response": "#/components/schemas/ModelResponse",
+                        "run.error": "#/components/schemas/RunError",
+                        "run.finished": "#/components/schemas/RunFinished",
+                        "run.paused": "#/components/schemas/RunPaused",
+                        "run.started": "#/components/schemas/RunStarted",
+                        "tool.decision": "#/components/schemas/ToolDecision",
+                        "tool.proposed": "#/components/schemas/ToolProposed",
+                        "tool.result": "#/components/schemas/ToolResult"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/RunStarted"
+                      },
+                      {
+                        "$ref": "#/components/schemas/LayerStarted"
+                      },
+                      {
+                        "$ref": "#/components/schemas/LayerVerdict"
+                      },
+                      {
+                        "$ref": "#/components/schemas/ModelRequest"
+                      },
+                      {
+                        "$ref": "#/components/schemas/ModelResponse"
+                      },
+                      {
+                        "$ref": "#/components/schemas/ToolProposed"
+                      },
+                      {
+                        "$ref": "#/components/schemas/ToolDecision"
+                      },
+                      {
+                        "$ref": "#/components/schemas/RunPaused"
+                      },
+                      {
+                        "$ref": "#/components/schemas/ToolResult"
+                      },
+                      {
+                        "$ref": "#/components/schemas/AttackerEvent"
+                      },
+                      {
+                        "$ref": "#/components/schemas/RunFinished"
+                      },
+                      {
+                        "$ref": "#/components/schemas/RunError"
+                      }
+                    ]
+                  },
+                  "title": "Response Run Event Schema Api Schema Run Event Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Run Event Schema"
+      }
+    },
+    "/api/screen": {
+      "post": {
+        "description": "Layers 1-2 on the viewer's text, locally: no model call, so the judge is off.",
+        "operationId": "screen_api_screen_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScreenBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreenResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Screen"
+      }
+    }
+  }
+}

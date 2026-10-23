@@ -68,7 +68,7 @@ def _class_rules(soup: BeautifulSoup) -> dict[str, dict[str, str]]:
     return rules
 
 
-def _parse_colour(value: str) -> tuple[int, int, int] | None | str:
+def _parse_colour(value: str) -> tuple[int, int, int] | str | None:
     """An RGB triple, None for transparent, or "unknown"."""
     value = value.strip()
     if value in _NAMED:
@@ -112,7 +112,7 @@ def _style_of(tag: Tag, class_rules: dict[str, dict[str, str]]) -> dict[str, str
     return style
 
 
-def _background(style: dict[str, str]) -> tuple[int, int, int] | None | str:
+def _background(style: dict[str, str]) -> tuple[int, int, int] | str | None:
     value = style.get("background-color") or style.get("background")
     if value is None:
         return "unset"
@@ -142,8 +142,10 @@ def _hidden_reason(
         if colour is None:
             return "transparent text"
         if colour != "unknown" and colour == bg:
-            return "white text on a white background" if colour == (255, 255, 255) else (
-                "text coloured like its background"
+            return (
+                "white text on a white background"
+                if colour == (255, 255, 255)
+                else ("text coloured like its background")
             )
     size = style.get("font-size")
     if size is not None:
@@ -162,9 +164,27 @@ def _squash(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+_TAG = re.compile(r"<(/?)([A-Za-z][\w:-]*)([^<>]*)>")
+
+
+def escape_unknown_tags(html: str) -> str:
+    """Turn tags that aren't HTML (a fake <system> or a stray </email>) into literal text.
+
+    The parser would otherwise drop an unmatched end tag, hiding the attacker's fake marker
+    from the text the model reads.
+    """
+
+    def escape(match: re.Match[str]) -> str:
+        if match.group(2).lower() in KNOWN_TAGS:
+            return match.group(0)
+        return "&lt;" + match.group(0)[1:-1] + "&gt;"
+
+    return _TAG.sub(escape, html)
+
+
 def clean_html(html: str) -> CleanedHtml:
     """Remove hidden parts of an HTML document and return what a person would read."""
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(escape_unknown_tags(html), "html.parser")
     removed: list[RemovedHtml] = []
     class_rules = _class_rules(soup)
 

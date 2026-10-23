@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import os
-from typing import Annotated
+from typing import Annotated, cast
 
 import typer
 from pydantic import ValidationError
 
+from seculayer.types import LayerSwitches
 from seculayer_demo.config import Mode, Settings, get_settings, is_loopback
 
 app = typer.Typer(
@@ -69,17 +70,22 @@ def serve(
 
 @app.command()
 def doctor(
-    online: Annotated[
-        bool, typer.Option(help="Also make one tiny live call per model (M3).")
-    ] = False,
+    online: Annotated[bool, typer.Option(help="Also make one tiny live call per model.")] = False,
 ) -> None:
     """Check the environment: tools, disk space, caches, port, key, classifier, recordings."""
     from seculayer_demo.doctor import format_report, run_checks
 
+    settings = _load_settings()
+    checks = list(run_checks(settings))
     if online:
-        typer.echo("doctor --online: not implemented yet (M3)", err=True)
-        raise typer.Exit(1)
-    checks = list(run_checks(_load_settings()))
+        if not settings.has_api_key:
+            typer.echo("doctor --online needs OPENAI_API_KEY in .env.", err=True)
+            raise typer.Exit(2)
+        from seculayer_demo.doctor import online_checks
+        from seculayer_demo.gateway.openai_client import OpenAITransport
+
+        transport = OpenAITransport(settings.openai_api_key.get_secret_value())
+        checks += list(online_checks(settings, transport))
     typer.echo(format_report(checks))
     if any(check.status == "fail" for check in checks):
         raise typer.Exit(1)
@@ -113,6 +119,213 @@ def fetch_model(
         typer.echo(f"Some files don't match the manifest: {result.states}", err=True)
         raise typer.Exit(1)
     typer.echo("All classifier files present and hash-checked.")
+
+
+def _layers(spec: str) -> LayerSwitches:
+    from seculayer_demo.console import parse_layers
+
+    try:
+        return parse_layers(spec)
+    except ValueError as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(2) from None
+
+
+@app.command()
+def screen(
+    case: Annotated[str, typer.Option("--case", help="Case ID, e.g. inbox.hidden_forward.")],
+    layers: Annotated[str, typer.Option(help="all, none, a list to keep on, or -layer,…")] = "all",
+) -> None:
+    """Print the hidden-text cleaner's and screening's verdicts for a case's inputs.
+
+    Runs locally with no model call, so the LLM judge is always off here.
+    """
+    from seculayer_demo.console import screen_case
+    from seculayer_demo.server.runs import make_classifier
+
+    settings = _load_settings()
+    try:
+        inspections = screen_case(case, _layers(layers), make_classifier(settings))
+    except KeyError as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(2) from None
+    steps = ["The user's message", "Tool result: the inbox"]
+    for title, inspection in zip(steps, inspections, strict=False):
+        typer.echo(title + (":" if len(inspections) > 1 else " and outside content:"))
+        for verdict in inspection.verdicts:
+            typer.echo(f"  [{verdict.layer.value:<11}] {verdict.action.value:<9} {verdict.reason}")
+            for line in verdict.detail:
+                typer.echo(f"      · {line[:150]}")
+        if inspection.withheld_ids:
+            typer.echo(f"  withheld: {', '.join(inspection.withheld_ids)}")
+        if inspection.blocked:
+            typer.echo(f"  blocked: {inspection.block_reason}")
+    typer.echo("(The LLM judge is off here: it needs a model call. Use `seculayer run`.)")
+
+
+@app.command()
+def run(
+    case: Annotated[str, typer.Option("--case", help="Case ID, e.g. inbox.hidden_forward.")],
+    protected: Annotated[bool, typer.Option("--protected", help="Run with SecuLayer.")] = False,
+    layers: Annotated[str, typer.Option(help="all, none, a list to keep on, or -layer,…")] = "all",
+    mode: Annotated[str, typer.Option(help="replay (default), live or record.")] = "replay",
+    trial: Annotated[int, typer.Option(min=1, help="Which recorded trial to replay.")] = 1,
+    model: Annotated[str | None, typer.Option(help="Model snapshot (default: target).")] = None,
+    decision: Annotated[
+        str, typer.Option(help="If SecuLayer asks before sending: stop, approve or decline.")
+    ] = "stop",
+) -> None:
+    """Run one case and print its events compactly."""
+    from seculayer_demo.console import print_events
+    from seculayer_demo.gateway import ModelGateway, RecordingStore, TokenBudget
+    from seculayer_demo.gateway.openai_client import OpenAITransport
+    from seculayer_demo.runner import AgentRunner, ConfirmPolicy, RunRequest
+    from seculayer_demo.server.runs import make_classifier
+
+    settings = _load_settings()
+    if mode not in ("replay", "live", "record"):
+        typer.echo(f"Unknown mode {mode!r}; use replay, live or record.", err=True)
+        raise typer.Exit(2)
+    if decision not in ("stop", "approve", "decline"):
+        typer.echo("--decision must be stop, approve or decline.", err=True)
+        raise typer.Exit(2)
+    transport = None
+    if mode != "replay":
+        if not settings.has_api_key:
+            typer.echo(f"{mode} mode needs OPENAI_API_KEY in .env.", err=True)
+            raise typer.Exit(2)
+        transport = OpenAITransport(settings.openai_api_key.get_secret_value())
+    budget = TokenBudget(settings.token_budget, settings.spend_log)
+    gateway = ModelGateway(
+        mode,  # type: ignore[arg-type]
+        RecordingStore(settings.recordings_dir),
+        transport=transport,
+        budget=budget,
+    )
+    switches = _layers(layers) if protected else LayerSwitches.all_off()
+    try:
+        runner = AgentRunner(
+            RunRequest(
+                case,
+                protected,
+                model or settings.model,
+                switches,
+                trial,
+                on_confirm=cast(ConfirmPolicy, decision),
+            ),
+            gateway=gateway,
+            judge_model=settings.judge_model,
+            classifier=make_classifier(settings),
+            run_id="cli",
+        )
+    except KeyError as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(2) from None
+    try:
+        print_events(runner.events(), typer.echo)
+    finally:
+        budget.flush(label=f"seculayer run {case}")
+    if runner.finished is None or runner.finished.outcome == "error":
+        raise typer.Exit(1)
+
+
+@app.command()
+def record(
+    cases: Annotated[str, typer.Option(help="Case IDs or patterns, comma-separated.")],
+    configs: Annotated[str, typer.Option(help="A, B, C, D, C+ and/or combos.")] = "A,B",
+    trials: Annotated[int, typer.Option(min=1, max=5, help="Trials per case.")] = 3,
+    yes: Annotated[bool, typer.Option("--yes", help="Don't ask before starting.")] = False,
+) -> None:
+    """Record missing model calls (live, within SECULAYER_TOKEN_BUDGET)."""
+    from seculayer_demo.gateway import ModelGateway, RecordingStore, TokenBudget
+    from seculayer_demo.gateway.openai_client import OpenAITransport
+    from seculayer_demo.recording_batch import (
+        configs as make_configs,
+    )
+    from seculayer_demo.recording_batch import (
+        estimate_tokens,
+        plan_jobs,
+        run_jobs,
+        select_cases,
+    )
+    from seculayer_demo.server.runs import make_classifier
+
+    settings = _load_settings()
+    names = [n.strip() for n in configs.split(",") if n.strip()]
+    try:
+        chosen = make_configs(names, settings.model, settings.compare_model)
+        selected = select_cases(cases)
+    except ValueError as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(2) from None
+    jobs = plan_jobs(selected, chosen, trials, combos="combos" in names, target=settings.model)
+    budget = TokenBudget(settings.token_budget, settings.spend_log)
+    estimate = estimate_tokens(jobs)
+    typer.echo(
+        f"{len(selected)} cases, {len(jobs)} runs. Estimated at most {estimate:,} tokens if "
+        f"nothing is recorded yet; {budget.remaining:,} of {settings.token_budget:,} remain."
+    )
+    if estimate > budget.remaining:
+        typer.echo(
+            "That exceeds the remaining budget (SECULAYER_TOKEN_BUDGET). Not starting.", err=True
+        )
+        raise typer.Exit(1)
+    if not settings.has_api_key:
+        typer.echo("record needs OPENAI_API_KEY in .env.", err=True)
+        raise typer.Exit(2)
+    if not yes and not typer.confirm("Start recording?"):
+        raise typer.Exit(1)
+    transport = OpenAITransport(settings.openai_api_key.get_secret_value())
+    gateway = ModelGateway(
+        "record", RecordingStore(settings.recordings_dir), transport=transport, budget=budget
+    )
+    try:
+        counts = run_jobs(
+            jobs,
+            gateway,
+            judge_model=settings.judge_model,
+            classifier=make_classifier(settings),
+            log=typer.echo,
+        )
+    finally:
+        written = budget.flush(label=f"record {cases} {configs} x{trials}")
+    typer.echo(f"Done: {counts}. {written:,} tokens logged to data/spend.jsonl.")
+
+
+@app.command("warm-classifier")
+def warm_classifier_command() -> None:
+    """Score every curated input with the classifier and save the scores to
+    data/cache/classifier_scores.jsonl (committed, so machines without the model can use them)."""
+    from seculayer_demo.server.runs import classifier_cache_path, make_classifier, warm_classifier
+
+    settings = _load_settings()
+    classifier = make_classifier(settings)
+    if not classifier.model_available:
+        typer.echo("The classifier isn't downloaded. Run: uv run seculayer fetch-model", err=True)
+        raise typer.Exit(1)
+    scored = warm_classifier(classifier)
+    typer.echo(
+        f"Scored {scored} new texts; {len(classifier.cache)} in {classifier_cache_path(settings)}."
+    )
+
+
+@app.command("export-openapi")
+def export_openapi(
+    path: Annotated[str, typer.Argument(help="Where to write the OpenAPI JSON.")] = (
+        "web/src/api/openapi.json"
+    ),
+) -> None:
+    """Write the API's OpenAPI document (make types turns it into TypeScript)."""
+    import json
+    from pathlib import Path
+
+    from seculayer_demo.server.app import create_app
+
+    document = create_app(_load_settings(), warm=False).openapi()
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    typer.echo(f"Wrote {target}")
 
 
 if __name__ == "__main__":

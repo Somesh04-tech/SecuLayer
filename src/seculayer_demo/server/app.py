@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 
 from seculayer_demo.config import Mode, Settings, get_settings
+from seculayer_demo.gateway import Transport
 from seculayer_demo.server.routes import router
+from seculayer_demo.server.runs import RunService, warm_classifier
 from seculayer_demo.server.security import SecurityHeadersMiddleware
 from seculayer_demo.status import app_version
 
@@ -24,6 +27,8 @@ def create_app(
     *,
     mode: Mode | None = None,
     dist_dir: Path | None = None,
+    transport: Transport | None = None,
+    warm: bool = True,
 ) -> FastAPI:
     settings = settings or get_settings()
     dist = (dist_dir or settings.web_dist).resolve()
@@ -37,6 +42,12 @@ def create_app(
     )
     app.state.settings = settings
     app.state.mode = mode or settings.mode
+    app.state.runs = RunService(settings, app.state.mode, transport=transport)
+    if warm and app.state.runs.classifier.model_available:
+        # Pre-warm the classifier cache for every curated input, off the request path.
+        threading.Thread(
+            target=warm_classifier, args=(app.state.runs.classifier,), daemon=True
+        ).start()
     app.add_middleware(SecurityHeadersMiddleware)
     app.include_router(router)
 

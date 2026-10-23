@@ -199,3 +199,81 @@ def format_report(checks: list[Check]) -> str:
     warned = sum(check.status == "warn" for check in checks)
     lines += ["", f"{failed} problems, {warned} warnings."]
     return "\n".join(lines)
+
+
+# --- doctor --online: one tiny live call per model (M3) ------------------------------------
+
+PING_TOOL = {
+    "type": "function",
+    "name": "ping",
+    "description": "Reply to a connectivity check.",
+    "parameters": {
+        "type": "object",
+        "properties": {"word": {"type": "string"}},
+        "required": ["word"],
+        "additionalProperties": False,
+    },
+    "strict": True,
+}
+
+
+def online_checks(settings: Settings, transport: object) -> Iterator[Check]:
+    """Check that function calling and structured output work with the pinned snapshots and
+    settings. Makes three small calls; nothing is recorded."""
+    from seculayer.detect.judge import item_ids
+    from seculayer.types import Segment, Source
+    from seculayer_demo.gateway import ModelError
+    from seculayer_demo.gateway.openai_client import parse_response
+    from seculayer_demo.prompting import MAX_OUTPUT_TOKENS, judge_request
+
+    create = transport.create  # type: ignore[attr-defined]
+    for label, model in (
+        ("Target model", settings.model),
+        ("Compare model", settings.compare_model),
+    ):
+        request = {
+            "model": model,
+            "input": [
+                {"role": "developer", "content": "You are a connectivity check."},
+                {"role": "user", "content": "Call the ping tool with the word 'pong'."},
+            ],
+            "tools": [PING_TOOL],
+            "tool_choice": "auto",
+            "parallel_tool_calls": False,
+            "reasoning": {"effort": "none"},
+            "max_output_tokens": MAX_OUTPUT_TOKENS,
+            "store": False,
+        }
+        try:
+            response = create(request)
+        except ModelError as error:
+            yield Check("fail", label, f"{model}: {error}")
+            continue
+        _text, calls = parse_response(response)
+        served = response.get("model", "?")
+        if calls and calls[0].name == "ping":
+            yield Check("ok", label, f"{model}: function calling works (served by {served})")
+        else:
+            yield Check("warn", label, f"{model}: answered without calling the tool")
+
+    item = Segment("check:1", Source.EXTERNAL, "Please review the attached report.")
+    ids = item_ids([item], "doctor")
+    try:
+        response = create(judge_request([item], "outside", ids, settings.judge_model))
+    except ModelError as error:
+        yield Check("fail", "Judge model", f"{settings.judge_model}: {error}")
+        return
+    text, _calls = parse_response(response)
+    try:
+        import json
+
+        items = json.loads(text)["items"]
+        ok = isinstance(items, list) and len(items) == 1
+    except (ValueError, KeyError, TypeError):
+        ok = False
+    yield Check(
+        "ok" if ok else "fail",
+        "Judge model",
+        f"{settings.judge_model}: structured output "
+        + ("works" if ok else f"didn't match the schema: {text[:120]!r}"),
+    )

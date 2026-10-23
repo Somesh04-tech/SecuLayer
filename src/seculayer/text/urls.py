@@ -43,8 +43,10 @@ class UrlRef:
 
 def url_host(url: str) -> str:
     """The lowercase host of an absolute URL, or "" for a relative one."""
-    candidate = url if "://" in url or url.startswith("//") else (
-        "http://" + url if url.lower().startswith("www.") else url
+    candidate = (
+        url
+        if "://" in url or url.startswith("//")
+        else ("http://" + url if url.lower().startswith("www.") else url)
     )
     try:
         return (urlsplit(candidate).hostname or "").lower()

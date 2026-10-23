@@ -18,10 +18,16 @@ class Source(StrEnum):
     DEVELOPER = "developer"  # the app's own instructions
     USER = "user"  # the person using the app (the attacker, in direct attacks)
     EXTERNAL = "external"  # outside content: emails, pages, documents, tool results
+    SECULAYER = "seculayer"  # text SecuLayer adds: the trust policy, withheld placeholders
 
 
 # What a withheld item is called in its placeholder, by segment-ID prefix.
 _ITEM_NOUNS = {"email": "email", "page": "page", "kb": "article", "article": "article"}
+
+
+def noun_for(segment_id: str) -> str:
+    """What an item is, for UI copy: "email", "page", "article" or "item"."""
+    return _ITEM_NOUNS.get(segment_id.split(":", 1)[0], "item")
 
 
 @dataclass(frozen=True)
@@ -32,11 +38,15 @@ class Segment:
     format: Format = "text"
     label: str = ""  # shown in the UI, e.g. "Email from Northwind Logistics"
     private: bool = False  # holds the user's private data (used by the tool guard)
+    # App text that only frames outside content ("Page HTML:"); hardening moves it with that
+    # content when it moves the content out of the developer or user message.
+    outside_scaffold: bool = False
+    meta: tuple[tuple[str, str], ...] = ()  # app fields shown beside the text (from, subject)
 
     @property
     def noun(self) -> str:
         """What the item is, for UI copy: "email", "page", "article" or "item"."""
-        return _ITEM_NOUNS.get(self.id.split(":", 1)[0], "item")
+        return noun_for(self.id)
 
     def with_text(self, text: str, *, format: Format | None = None) -> Segment:
         return replace(self, text=text, format=format or self.format)
@@ -51,6 +61,12 @@ class Message:
     tool_name: str | None = None
     call_id: str | None = None
     label: str = ""  # optional UI label, e.g. "Outside content (moved by SecuLayer)"
+    content: str = ""  # model-written text: an assistant reply or a tool call's JSON arguments
+
+    @property
+    def text(self) -> str:
+        """The message as the model reads it."""
+        return ("".join(segment.text for segment in self.segments) or self.content).strip()
 
 
 @dataclass(frozen=True)
@@ -145,13 +161,16 @@ class LayerSwitches:
         )
 
 
+HiddenKind = Literal["css", "comment", "element", "tag_chars", "zero_width", "bidi"]
+
+
 @dataclass(frozen=True)
 class HiddenPiece:
     """A piece of text the hidden-text cleaner removed."""
 
     segment_id: str
     text: str  # the removed text, decoded where possible (tag characters become ASCII)
-    kind: Literal["css", "comment", "element", "tag_chars", "zero_width", "bidi"]
+    kind: HiddenKind
     reason: str  # plain language: "white text", "HTML comment", "tag characters", ...
     span: tuple[int, int] | None = None  # offsets in the original segment text, when known
 
@@ -171,6 +190,10 @@ class JudgeResult:
     requested_action: str | None
     evidence: str | None
     reason: str
+
+
+class JudgeUnavailable(RuntimeError):
+    """The judge couldn't give a verdict; every item it was asked about counts as suspicious."""
 
 
 class ClassifierUnavailable(RuntimeError):
@@ -210,7 +233,9 @@ class RunContext:
     policy: Policy
     user_text: str
     seed: str = ""
+    developer_text: str = ""  # the app's own instructions (trusted, for the link rule)
     outside_segments: dict[str, Segment] = field(default_factory=dict)  # original text, by ID
+    visible_outside: dict[str, str] = field(default_factory=dict)  # what a person would see
     flagged_segment_ids: set[str] = field(default_factory=set)  # flagged or withheld by screening
 
 
