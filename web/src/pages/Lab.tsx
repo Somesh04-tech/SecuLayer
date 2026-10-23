@@ -1,5 +1,5 @@
 import { ChevronLeft, RotateCw, SearchX, TriangleAlert } from "lucide-react";
-import { useCallback, useEffect, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 
 import { ApiError, useApi } from "../api/client";
@@ -10,7 +10,9 @@ import { EmptyState, ErrorState } from "../components/EmptyState";
 import { Container, Page } from "../components/Page";
 import { Term } from "../components/Term";
 import { ScenarioCards } from "../features/home/ScenarioCards";
+import { ShortcutHelp, usePresenterShortcuts } from "../features/lab/PresenterShortcuts";
 import { RunArea } from "../features/lab/run/RunArea";
+import type { Side } from "../features/lab/run/RunColumn";
 import { AboutCase } from "../features/lab/setup/AboutCase";
 import { CaseList, listedCases } from "../features/lab/setup/CaseList";
 import { ScenarioHeader } from "../features/lab/setup/ScenarioHeader";
@@ -97,6 +99,29 @@ function ScenarioLab({ scenarioId }: { scenarioId: string }) {
     document.title = `${detail?.title ?? "Attack Lab"} · SecuLayer`;
   }, [detail?.title]);
 
+  const runRef = useRef<((side: Side) => void) | null>(null);
+  const selectedId = selected?.id;
+  const shortcuts = useMemo(() => {
+    const listed = detail ? listedCases(detail.cases) : { attacks: [], normal: [] };
+    const order = [...listed.attacks, ...listed.normal].map((c) => c.id);
+    const step = (by: number) => {
+      const at = order.indexOf(selectedId ?? "");
+      const next = order[Math.min(Math.max(at + by, 0), order.length - 1)];
+      if (next && next !== selectedId) select(next);
+    };
+    return {
+      previous: () => step(-1),
+      next: () => step(1),
+      run: (side: Side) => runRef.current?.(side),
+      prompt: () => {
+        const target = document.getElementById("prompt-anatomy");
+        target?.scrollIntoView({ block: "start" });
+        target?.focus({ preventScroll: true });
+      },
+    };
+  }, [detail, selectedId, select]);
+  const { helpOpen, closeHelp } = usePresenterShortcuts(shortcuts);
+
   if (scenario.status === "loading") {
     return (
       <LabFrame>
@@ -155,17 +180,21 @@ function ScenarioLab({ scenarioId }: { scenarioId: string }) {
       <div className="mt-10 grid items-start gap-8 border-t border-border pt-8 lg:grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[17rem_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-4" aria-label="Attacks and normal use">
           {selected && <CaseList cases={detail.cases} selectedId={selected.id} onSelect={select} />}
+          <p className="mt-6 text-caption text-ink-3">
+            Presenting? Press <kbd className="font-mono">?</kbd> for shortcuts.
+          </p>
         </aside>
         {selected ? (
           <div className="min-w-0 space-y-10">
             <SetupPanel key={selected.id} scenario={detail} caseDetail={selected} />
-            <RunArea key={selected.id} scenario={detail} caseDetail={selected} />
+            <RunArea key={selected.id} scenario={detail} caseDetail={selected} runRef={runRef} />
             <AboutCase caseDetail={selected} />
           </div>
         ) : (
           <EmptyState icon={SearchX} title="This scenario has no cases yet." />
         )}
       </div>
+      <ShortcutHelp open={helpOpen} onClose={closeHelp} />
     </Container>
   );
 }

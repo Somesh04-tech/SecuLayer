@@ -1,79 +1,19 @@
-import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type Locator, type Page } from "@playwright/test";
-import { fileURLToPath } from "node:url";
+
+import {
+  SCREENSHOTS,
+  column,
+  expectCleanAxe,
+  expectOutcome,
+  expectedRun,
+  guardNetwork,
+} from "./helpers";
 
 /**
  * The featured cases, run both ways in replay mode (docs/PLAN.md §9 M4). Expected outcomes
  * come from the API's own replay of the recording, never hard-coded, so the spec holds for
  * the FakeModel fixtures (tests/e2e_fixtures.py) and for real recordings alike.
  */
-
-const SCREENSHOTS = fileURLToPath(new URL("../../artifacts/screenshots/", import.meta.url));
-
-interface Finished {
-  outcome: string;
-  banner: { title: string; sentence: string };
-  stopped_by: string | null;
-}
-
-async function expectedRun(
-  request: APIRequestContext,
-  caseId: string,
-  isProtected: boolean,
-): Promise<{ finished: Finished; attacker: { destination: string }[] }> {
-  const response = await request.post("/api/runs", {
-    data: { case_id: caseId, protected: isProtected },
-  });
-  expect(response.ok()).toBe(true);
-  const events = (await response.text())
-    .split("\n")
-    .filter((line) => line.trim())
-    .map((line) => JSON.parse(line) as { type: string } & Record<string, unknown>);
-  const finished = events.find((e) => e.type === "run.finished") as unknown as Finished;
-  expect(finished, `${caseId} replays to a finished run`).toBeTruthy();
-  const attacker = events.filter((e) => e.type === "attacker.event") as unknown as {
-    destination: string;
-  }[];
-  return { finished, attacker };
-}
-
-async function guardNetwork(page: Page): Promise<string[]> {
-  const offsite: string[] = [];
-  await page.route("**/*", async (route) => {
-    const url = new URL(route.request().url());
-    if (url.hostname === "127.0.0.1") {
-      await route.continue();
-    } else {
-      offsite.push(url.href);
-      await route.abort();
-    }
-  });
-  return offsite;
-}
-
-async function expectCleanAxe(page: Page) {
-  // The toy apps' sandboxed iframes hold fictional email and page content, not our UI, and
-  // can't run axe's script; legacy mode scans the page without opening helper pages.
-  const results = await new AxeBuilder({ page })
-    .setLegacyMode(true)
-    .exclude("iframe[sandbox]")
-    .analyze();
-  const serious = results.violations
-    .filter((v) => v.impact === "serious" || v.impact === "critical")
-    .map((v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(" ")).join(", ")})`);
-  expect(serious).toEqual([]);
-}
-
-function column(page: Page, name: "Without SecuLayer" | "With SecuLayer"): Locator {
-  return page.getByRole("region", { name, exact: true });
-}
-
-async function expectOutcome(col: Locator, finished: Finished) {
-  const banner = col.getByTestId("outcome-banner");
-  await expect(banner).toBeVisible({ timeout: 20_000 });
-  await expect(banner).toHaveAttribute("data-outcome", finished.outcome);
-  await expect(banner).toContainText(finished.banner.title);
-}
 
 async function runBothWays(page: Page, request: APIRequestContext, caseId: string) {
   const without = await expectedRun(request, caseId, false);

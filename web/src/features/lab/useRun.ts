@@ -34,8 +34,10 @@ export interface RunState {
   status: "idle" | "running" | "paused" | "finished" | "error";
   started?: RunStarted;
   layers: Record<LayerName, LayerRow>;
-  /** Every verdict in order, for the step-by-step timeline. */
+  /** Every verdict in order, for the pipeline's total time. */
   verdicts: LayerVerdict[];
+  /** Every event in the order it arrived, for the step-by-step timeline. */
+  events: RunEvent[];
   requests: ModelRequest[];
   responses: ModelResponse[];
   tools: ToolStep[];
@@ -60,6 +62,7 @@ export function initialRunState(): RunState {
     status: "idle",
     layers: waitingLayers(),
     verdicts: [],
+    events: [],
     requests: [],
     responses: [],
     tools: [],
@@ -90,7 +93,8 @@ function keepVerdict(current: LayerRow, next: LayerVerdict): LayerRow {
 }
 
 /** Applies one run event to the state. Pure, so it is easy to test. */
-export function reduceRun(state: RunState, event: RunEvent): RunState {
+export function reduceRun(previous: RunState, event: RunEvent): RunState {
+  const state = { ...previous, events: [...previous.events, event] };
   switch (event.type) {
     case "run.started":
       return { ...state, status: "running", started: event };

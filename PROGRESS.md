@@ -8,7 +8,7 @@ Plan: docs/PLAN.md · Last updated: 2026-10-24, session 3 (M3 recordings, on the
 | M2 | SecuLayer core and scenario data | done (score cache committed in session 3: 99 texts) | make check (unit tests for every layer, data validation), `seculayer screen --case inbox.hidden_forward` with and without the cleaner | see `git log` ("M2: SecuLayer layers, …") |
 | M3 | Model gateway, toy apps and run API | done (Layers-menu `combos` recorded after the featured payloads were frozen, see Session 3) | make check (378 pytest, 38 Vitest, lint, typecheck), make e2e (16 Playwright tests), `doctor --online` (0 problems), `record` A,B × 3 trials, `env -u OPENAI_API_KEY uv run seculayer run --case inbox.hidden_forward --protected --mode replay` completes | see `git log` ("M3: model gateway, …") |
 | M4 | Attack Lab, part 1 (run both ways) | done (verified against FakeModel fixture recordings; real recordings now exist, but both featured attacks resisted in configuration A) | make check (372 pytest, 37 Vitest incl. ConfirmDialog), make e2e (16 Playwright tests: featured cases both ways, trial navigator, keyboard-only flow, axe, local-only requests), screenshots m4-lab-*.png and m1-home-*.png reviewed | see `git log` ("M4: …") |
-| M5 | Attack Lab, part 2 (show the mechanism) | not started | | |
+| M5 | Attack Lab, part 2 (show the mechanism) | done: **presentable** | make check (378 pytest, 55 Vitest incl. anatomy, ShareBar, Layers menu, timeline and shortcut tests), make e2e (24 Playwright tests: anatomy both tabs, layer toggles rerun, not-recorded state with reset, presenter shortcuts, axe), screenshots m5-anatomy-1440.png and m5-layer-menu-1280.png reviewed | see `git log` ("M5: …") |
 | M6 | Attack qualification and full recordings | not started | | |
 | M7 | Evaluation and Results page | not started | | |
 | M8 | Explainer pages and Sandbox | not started | | |
@@ -66,6 +66,20 @@ Session 2 ran in a Claude Code cloud container (Linux, Python 3.12, Node 22.22),
   - Measured side effects, now asserted in tests: with the cleaner off, the rules and the classifier (0.01) miss the new inbox note, so screening depends on the judge and the tool guard is the backstop (`test_known_rule_blind_spots`; the case's `what_stops_it` says so). `support.override` now matches `instruction_override` and `role_reassignment`, not `prompt_extraction` (still covered by `v_repeat`); the classifier scores it 0.99.
 - **Layers-menu recordings**: `record --configs combos --trials 1` for both featured cases: 512 runs (308 stopped, 168 resisted, 36 hijacked), only 6 live calls (8,295 tokens), because combinations that switch off decide-only layers share requests. Every combination replays offline. Examples: inbox with the cleaner off → screening withholds the email (the judge rated it malicious); the support chat with screening off → the model leaked and the output guard caught the canary.
 - **Default trial (§6.8)**: `GET /api/scenarios/{id}` now gives each primary attack `recorded: {trials, hijacked, default_trial}`, computed by replaying the unprotected trials (cached per recording-store size; 0.4 s for the inbox the first time). Both Lab columns start on the first hijacked trial, and the Without column says "The attack worked in 1 of 3 recorded runs."
+
+## M5: show the mechanism (session 3)
+- **PromptAnatomy** (`web/src/features/lab/run/PromptAnatomy.tsx`) replaces M4's preview:
+  - Without and With tabs (Radix Tabs; it opens on the side run last), and a call selector that defaults to the call where the model asked to send email, else the last one;
+  - the legend (with "Flagged by SecuLayer"), and a ShareBar from `tokens_by_source` with largest-remainder percentages that always sum to 100;
+  - source blocks: injected spans, SecuLayer parts with a dashed border, datamarked text, removed hidden text as a struck-through chip that expands, chips for invisible characters (`U+E0049 U+E0067 …`, `ZWSP`, with what tag characters spell), and wavy underlines on detector excerpts within the flagged segment;
+  - Raw text and Copy.
+- **LayerMenu**: five switches with one-line descriptions (Terms for the classifier, judge and canary) and "Reset to all on". The With column sends `layers` only when something is off. The not-recorded notice now offers "Reset the layers".
+- **Model selector**: the target and compare models; in replay, a model with no recordings is disabled ("not recorded").
+- **Step-by-step timeline** in the With column, from an ordered event log in `useRun` (times summed from the layers' and the model's own latencies).
+- **Presenter shortcuts** (`[` `]` `u` `s` `p` `?`), ignored while typing, with a modifier key held, or while a dialog is open; `?` opens a help dialog. The case list says "Press ? for shortcuts".
+- `call_index` counts from 0 in the events; the UI shows it from 1.
+- e2e helpers moved to `web/e2e/helpers.ts`; the new spec is `web/e2e/lab-mechanism.spec.ts`. One new FakeModel fixture: the featured inbox case with the cleaner and screening off. The not-recorded test switches off prompt hardening, because switching off a decide-only layer replays from the same recordings.
+- Screenshot review against §4 and §4.7: the anatomy's tinted source blocks, a dashed green border on SecuLayer text, and colour only for meaning; no shadows except the popover; the Layers menu is a popover over the With column. The anatomy screenshot shows the top of its scroll box (the tool results are below, inside it).
 
 ## M4: the Attack Lab (session 2)
 - **Home**: scenario cards from `/api/scenarios`, with the lethal-trifecta markers (the support chat shows outside content as absent). The prompt diagram's "One model" and "Reply and actions" nodes are now plain text, which closes that known issue.
@@ -167,5 +181,5 @@ Session 2 ran in a Claude Code cloud container (Linux, Python 3.12, Node 22.22),
 - The toy pages inside the sandboxed iframes render in the browser's default (serif) font. The CSP and the token rules keep any font-family out of them, and that's acceptable: they're fictional third-party content.
 
 ## Next step
-1. M5 (prompt anatomy, Layers menu, glossary, timeline, presenter shortcuts).
+1. The developer asked to stop the build after M5 and finish the project report first (`projectreport/`). Next build milestone: M6 (qualify the other 10 attacks, full recordings). (prompt anatomy, Layers menu, glossary, timeline, presenter shortcuts).
 3. A project report (DOCX) is being written separately into `projectreport/`, following the college format there.

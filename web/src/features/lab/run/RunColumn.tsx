@@ -1,5 +1,5 @@
 import { LoaderCircle, Play, RotateCw, X } from "lucide-react";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import type { ActionOut, CaseDetail, ScenarioDetail } from "../../../api/types";
 import { setupOf } from "../../../api/types";
@@ -10,12 +10,18 @@ import type { RunController, RunState } from "../useRun";
 import { ActionsList } from "./ActionsList";
 import { AttackerServer } from "./AttackerServer";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { ALL_ON, LayerMenu, layersOn, type LayerSettings } from "./LayerMenu";
 import { OutcomeBanner } from "./OutcomeBanner";
 import { Pipeline } from "./Pipeline";
 import { ReplyView } from "./ReplyView";
+import { Timeline } from "./Timeline";
 import { TrialNavigator } from "./TrialNavigator";
 
 export type Side = "without" | "with";
+
+/** Each column's "run the default trial", for the presenter shortcuts. */
+export type Starters = Partial<Record<Side, () => void>>;
+export type RegisterStarter = (side: Side, start: (() => void) | undefined) => void;
 
 const COPY: Record<Side, { title: string; sub: string; button: string }> = {
   without: {
@@ -29,6 +35,8 @@ const COPY: Record<Side, { title: string; sub: string; button: string }> = {
     button: "Run with SecuLayer",
   },
 };
+
+const LAYERS_TOTAL = Object.keys(ALL_ON).length;
 
 const THING: Record<string, string> = {
   inbox: "inbox",
@@ -86,6 +94,10 @@ export function RunColumn({
   caseDetail,
   primary,
   onRun,
+  layers = ALL_ON,
+  onLayersChange,
+  model,
+  register,
 }: {
   side: Side;
   run: RunController;
@@ -93,6 +105,12 @@ export function RunColumn({
   caseDetail: CaseDetail;
   primary: boolean;
   onRun: () => void;
+  /** The With column's layer switches (the Layers menu). */
+  layers?: LayerSettings;
+  onLayersChange?: (layers: LayerSettings) => void;
+  /** The model to run; the server's target model when absent. */
+  model?: string | undefined;
+  register?: RegisterStarter;
 }) {
   const copy = COPY[side];
   const headingId = useId();
@@ -110,8 +128,19 @@ export function RunColumn({
   const start = (nextTrial: number) => {
     setTrial(nextTrial);
     onRun();
-    void run.start({ case_id: caseDetail.id, protected: side === "with", trial: nextTrial });
+    const custom = side === "with" && layersOn(layers) < LAYERS_TOTAL;
+    void run.start({
+      case_id: caseDetail.id,
+      protected: side === "with",
+      trial: nextTrial,
+      ...(custom ? { layers } : {}),
+      ...(model ? { model } : {}),
+    });
   };
+
+  useEffect(() => {
+    register?.(side, busy ? undefined : () => start(defaultTrial));
+  });
 
   const setupKind = setupOf(caseDetail).kind;
   const actions = actionsOf(state);
@@ -144,7 +173,9 @@ export function RunColumn({
             Cancel
           </Button>
         )}
-        {side === "with" && <span className="text-small text-ink-3">Layers: all 5 on</span>}
+        {side === "with" && onLayersChange && (
+          <LayerMenu layers={layers} onChange={onLayersChange} disabled={busy} />
+        )}
       </div>
 
       {busy && (
@@ -181,6 +212,11 @@ export function RunColumn({
           <Notice
             actions={
               <>
+                {side === "with" && onLayersChange && layersOn(layers) < LAYERS_TOTAL && (
+                  <Button variant="secondary" size="small" onClick={() => onLayersChange(ALL_ON)}>
+                    Reset the layers
+                  </Button>
+                )}
                 <Button variant="secondary" size="small" disabled>
                   Switch to live mode
                 </Button>
@@ -198,7 +234,9 @@ export function RunColumn({
               </>
             }
           >
-            This combination of layers wasn't recorded. Reset the layers, or switch to live mode.
+            {side === "with"
+              ? "This combination of layers wasn't recorded. Reset the layers, or switch to live mode."
+              : "This run wasn't recorded. Switch to live mode to run it."}
           </Notice>
         ) : (
           <Notice
@@ -249,7 +287,14 @@ export function RunColumn({
       )}
 
       {side === "with" && (
-        <Pipeline layers={state.layers} verdicts={state.verdicts} userName={userName} />
+        <>
+          <Pipeline layers={state.layers} verdicts={state.verdicts} userName={userName} />
+          <Timeline
+            events={state.events}
+            userName={userName}
+            userRequest={caseDetail.user_request}
+          />
+        </>
       )}
 
       {state.status === "idle" && !state.error && (

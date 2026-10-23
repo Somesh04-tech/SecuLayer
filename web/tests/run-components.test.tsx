@@ -124,6 +124,7 @@ const SCENARIO = {
 } as unknown as ScenarioDetail;
 const CASE = {
   id: "inbox.polite_invoice",
+  user_request: "Go through my unread emails and handle anything urgent.",
   setup: { kind: "inbox", emails: [] },
 } as unknown as CaseDetail;
 
