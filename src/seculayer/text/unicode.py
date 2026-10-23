@@ -94,7 +94,13 @@ def normalize_for_matching(text: str) -> str:
 
 
 _MARKER = re.compile(r"\{\{(tags:(?P<tags>[^}]*)|zwsp|zwnj|zwj|wj|bom)\}\}")
-_MARKER_CHARS = {"zwsp": "​", "zwnj": "‌", "zwj": "‍", "wj": "⁠", "bom": "﻿"}
+_MARKER_CHARS = {
+    "zwsp": "\u200b",
+    "zwnj": "\u200c",
+    "zwj": "\u200d",
+    "wj": "\u2060",
+    "bom": "\ufeff",
+}
 
 
 def expand_markers(text: str) -> str:

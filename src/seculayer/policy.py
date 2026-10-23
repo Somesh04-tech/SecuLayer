@@ -17,6 +17,7 @@ class PolicyError(ValueError):
 class ScreeningPolicy:
     classifier_intervene: float = 0.90
     classifier_flag: float = 0.50
+    judge_user: bool = False  # also send the user's own message to the judge (support chat)
 
 
 @dataclass(frozen=True)
@@ -30,17 +31,22 @@ class ToolPolicy:
 @dataclass(frozen=True)
 class Policy:
     protected_values: tuple[str, ...] = ()
+    # What each protected value is, for copy that must never repeat the value itself.
+    protected_labels: Mapping[str, str] = field(default_factory=dict)
     canary: str = ""
     allowed_domains: tuple[str, ...] = ()
     contacts: tuple[str, ...] = ()
     screening: ScreeningPolicy = field(default_factory=ScreeningPolicy)
     tools: Mapping[str, ToolPolicy] = field(default_factory=dict)
+    user_name: str = "the user"  # how copy refers to the app's user: "Dana", "the customer"
 
     @classmethod
     def from_mapping(cls, table: Mapping[str, Any]) -> Policy:
         known = {
             "protected_values",
+            "protected_labels",
             "canary",
+            "user_name",
             "allowed_domains",
             "contacts",
             "screening",
@@ -55,7 +61,10 @@ class Policy:
             classifier_intervene=_number(
                 screening_table.get("classifier_intervene", 0.90), "classifier_intervene"
             ),
-            classifier_flag=_number(screening_table.get("classifier_flag", 0.50), "classifier_flag"),
+            classifier_flag=_number(
+                screening_table.get("classifier_flag", 0.50), "classifier_flag"
+            ),
+            judge_user=bool(screening_table.get("judge_user", False)),
         )
         if not 0 <= screening.classifier_flag <= screening.classifier_intervene <= 1:
             raise PolicyError("classifier thresholds must satisfy 0 <= flag <= intervene <= 1")
@@ -77,9 +86,18 @@ class Policy:
         canary = table.get("canary", "")
         if not isinstance(canary, str):
             raise PolicyError("canary must be a string")
+        user_name = table.get("user_name", "the user")
+        if not isinstance(user_name, str) or not user_name:
+            raise PolicyError("user_name must be a non-empty string")
+        protected = _strings(table.get("protected_values", ()), "protected_values")
+        labels = dict(_table(table.get("protected_labels", {}), "protected_labels"))
+        if not all(isinstance(v, str) for v in labels.values()) or set(labels) - set(protected):
+            raise PolicyError("protected_labels must map protected values to strings")
         return cls(
-            protected_values=_strings(table.get("protected_values", ()), "protected_values"),
+            protected_values=protected,
+            protected_labels=labels,
             canary=canary,
+            user_name=user_name,
             allowed_domains=tuple(
                 d.lower() for d in _strings(table.get("allowed_domains", ()), "allowed_domains")
             ),
@@ -87,6 +105,10 @@ class Policy:
             screening=screening,
             tools=tools,
         )
+
+    def label_for(self, value: str) -> str:
+        """Plain-language name of a protected value: "the staff discount code"."""
+        return self.protected_labels.get(value, "private data")
 
     def is_contact(self, address: str) -> bool:
         return address.strip().lower() in self.contacts

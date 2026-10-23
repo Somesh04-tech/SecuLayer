@@ -8,6 +8,7 @@ from typing import Annotated
 import typer
 from pydantic import ValidationError
 
+from seculayer.types import LayerSwitches
 from seculayer_demo.config import Mode, Settings, get_settings, is_loopback
 
 app = typer.Typer(
@@ -113,6 +114,53 @@ def fetch_model(
         typer.echo(f"Some files don't match the manifest: {result.states}", err=True)
         raise typer.Exit(1)
     typer.echo("All classifier files present and hash-checked.")
+
+
+def _layers(spec: str) -> LayerSwitches:
+    from seculayer_demo.console import parse_layers
+
+    try:
+        return parse_layers(spec)
+    except ValueError as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(2) from None
+
+
+@app.command()
+def screen(
+    case: Annotated[str, typer.Option("--case", help="Case ID, e.g. inbox.hidden_forward.")],
+    layers: Annotated[str, typer.Option(help="all, none, a list to keep on, or -layer,…")] = "all",
+) -> None:
+    """Print the hidden-text cleaner's and screening's verdicts for a case's inputs.
+
+    Runs locally with no model call, so the LLM judge is always off here.
+    """
+    from seculayer.detect.prompt_guard import CachedClassifier, PromptGuardClassifier, ScoreCache
+    from seculayer_demo.console import screen_case
+
+    settings = _load_settings()
+    model = PromptGuardClassifier(settings.classifier_path)
+    classifier = CachedClassifier(
+        ScoreCache(settings.data_dir / "cache" / "classifier_scores.jsonl"),
+        model if model.available else None,
+    )
+    try:
+        inspections = screen_case(case, _layers(layers), classifier)
+    except KeyError as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(2) from None
+    steps = ["The user's message", "Tool result: the inbox"]
+    for title, inspection in zip(steps, inspections, strict=False):
+        typer.echo(title + (":" if len(inspections) > 1 else " and outside content:"))
+        for verdict in inspection.verdicts:
+            typer.echo(f"  [{verdict.layer.value:<11}] {verdict.action.value:<9} {verdict.reason}")
+            for line in verdict.detail:
+                typer.echo(f"      · {line[:150]}")
+        if inspection.withheld_ids:
+            typer.echo(f"  withheld: {', '.join(inspection.withheld_ids)}")
+        if inspection.blocked:
+            typer.echo(f"  blocked: {inspection.block_reason}")
+    typer.echo("(The LLM judge is off here: it needs a model call. Use `seculayer run`.)")
 
 
 if __name__ == "__main__":

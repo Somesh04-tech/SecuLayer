@@ -146,7 +146,9 @@ RULES: tuple[Rule, ...] = (
         {"user": "flag", "outside": "intervene"},
         _FAKE_SYSTEM,
     ),
-    Rule("addressed_to_ai", "speaks directly to an AI reader", {"outside": "intervene"}, _ADDRESSED),
+    Rule(
+        "addressed_to_ai", "speaks directly to an AI reader", {"outside": "intervene"}, _ADDRESSED
+    ),
     Rule(
         "secrecy_request",
         "asks for something to be hidden from the user",
@@ -195,6 +197,8 @@ def find_encoded(text: str, place: Place) -> list[EncodedMatch]:
     Whether a run intervenes also depends on the classifier, which the screening layer adds.
     """
     return [
-        EncodedMatch(run.encoding, (run.start, run.end), run.decoded, tuple(run_rules(run.decoded, place)))
+        EncodedMatch(
+            run.encoding, (run.start, run.end), run.decoded, tuple(run_rules(run.decoded, place))
+        )
         for run in decode_runs(text)
     ]
