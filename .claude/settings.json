@@ -1,0 +1,7 @@
+{
+  "env": {
+    "UV_CACHE_DIR": "/media/akasdh/AKASH../Storage_Project/SecuLayer/.cache/uv",
+    "npm_config_cache": "/media/akasdh/AKASH../Storage_Project/SecuLayer/.cache/npm",
+    "PLAYWRIGHT_BROWSERS_PATH": "/media/akasdh/AKASH../Storage_Project/SecuLayer/.cache/ms-playwright"
+  }
+}

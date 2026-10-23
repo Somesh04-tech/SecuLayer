@@ -1,0 +1,135 @@
+/*
+ * SecuLayer design tokens (docs/PLAN.md §4.2–4.4).
+ *
+ * This is the only file allowed to hold raw colour values or font-family declarations
+ * (web/tests/design-tokens.test.ts). Tailwind's built-in palette, fonts, radii, shadows and
+ * text sizes are cleared first, so only the names below exist as utilities:
+ * bg-page, text-ink, border-outside-border, rounded-card, shadow-popover, text-body, …
+ */
+@import "tailwindcss";
+@import "@fontsource-variable/atkinson-hyperlegible-next";
+@import "@fontsource-variable/atkinson-hyperlegible-mono";
+@import "./base.css";
+
+@theme {
+  --color-*: initial;
+  --font-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --text-*: initial;
+
+  /* Neutrals */
+  --color-page: #ffffff;
+  --color-surface-muted: #f5f7fa;
+  --color-border: #e2e6ec;
+  --color-border-strong: #c2c9d3;
+  --color-border-control: #848e9c;
+  --color-ink: #10151c;
+  --color-ink-2: #3f4a58;
+  --color-ink-3: #5e6875;
+
+  /* The single accent: interactive elements only */
+  --color-accent: #2347d6;
+  --color-accent-hover: #1b38ad;
+  --color-accent-subtle: #eef2fe;
+
+  /* Injected text and the "Hijacked" outcome */
+  --color-danger-ink: #b42318;
+  --color-danger-bg: #fef2f1;
+  --color-danger-border: #f4b4ae;
+  --color-danger-solid: #c8281c;
+
+  /* Outside content */
+  --color-outside-ink: #8a4600;
+  --color-outside-bg: #fff6e5;
+  --color-outside-border: #f2bd5c;
+  --color-outside-solid: #c77700;
+
+  /* The "Safe" outcome and text added by SecuLayer */
+  --color-safe-ink: #0f6b3e;
+  --color-safe-bg: #ecf8f1;
+  --color-safe-border: #94d3ae;
+  --color-safe-solid: #17834d;
+
+  /* Developer instructions */
+  --color-dev-ink: #3a4656;
+  --color-dev-bg: #f1f3f6;
+  --color-dev-border: #c9d0da;
+
+  /* User input */
+  --color-user-ink: #7a2a8c;
+  --color-user-bg: #f8f0fa;
+  --color-user-border: #e2bfea;
+
+  /* Dialog overlay */
+  --color-overlay: rgb(16 21 28 / 0.32);
+
+  /* Fonts (§4.3). Mono is only for prompt text, code, URLs, addresses and tokens. */
+  --font-ui: "Atkinson Hyperlegible Next Variable", "Atkinson Hyperlegible Next", sans-serif;
+  --font-mono: "Atkinson Hyperlegible Mono Variable", monospace;
+  --default-font-family: var(--font-ui);
+  --default-mono-font-family: var(--font-mono);
+
+  /* Type scale (§4.3), in rem from a 16 px root */
+  --text-display: 2.5rem;
+  --text-display--line-height: 3rem;
+  --text-display--font-weight: 700;
+  --text-display--letter-spacing: -0.01em;
+  --text-h1: 1.875rem;
+  --text-h1--line-height: 2.375rem;
+  --text-h1--font-weight: 700;
+  --text-h1--letter-spacing: -0.01em;
+  --text-h2: 1.5rem;
+  --text-h2--line-height: 2rem;
+  --text-h2--font-weight: 700;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h3: 1.25rem;
+  --text-h3--line-height: 1.75rem;
+  --text-h3--font-weight: 600;
+  --text-h3--letter-spacing: -0.01em;
+  --text-lead: 1.1875rem;
+  --text-lead--line-height: 1.875rem;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.625rem;
+  --text-small: 0.9375rem;
+  --text-small--line-height: 1.375rem;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.125rem;
+  --text-caption--font-weight: 500;
+  --text-mono: 0.9375rem;
+  --text-mono--line-height: 1.5rem;
+
+  /* Radii (§4.4). Buttons are never pill-shaped: "round" is only for status dots and the switch. */
+  --radius-chip: 0.25rem;
+  --radius-control: 0.375rem;
+  --radius-card: 0.625rem;
+  --radius-round: 9999px;
+
+  /* Elevation: popovers, menus and dialogs only. Cards have no shadow. */
+  --shadow-popover: 0 1px 2px rgb(16 21 28 / 0.06), 0 8px 24px rgb(16 21 28 / 0.12);
+
+  /* Layout (§4.4) */
+  --container-content: 82.5rem;
+  --container-prose: 72ch;
+  --container-popover: 22rem;
+  --container-tooltip: 20rem;
+
+  /* Motion (§4.4) */
+  --ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+:root {
+  --duration-hover: 120ms;
+  --duration-expand: 200ms;
+  --duration-reveal: 240ms;
+  --duration-pulse: 600ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-hover: 0ms;
+    --duration-expand: 0ms;
+    --duration-reveal: 0ms;
+    --duration-pulse: 0ms;
+  }
+}

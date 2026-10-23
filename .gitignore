@@ -1,0 +1,40 @@
+# Secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Caches redirected onto the external drive (uv, npm, Playwright)
+.cache/
+
+# Web
+web/node_modules/
+web/dist/
+web/.vite/
+web/test-results/
+web/playwright-report/
+web/blob-report/
+web/*.tsbuildinfo
+
+# Classifier files (models/manifest.toml stays tracked)
+models/*/
+
+# Screenshots and reports
+artifacts/
+
+# Editors and OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Agent-local settings; .claude/settings.json stays tracked
+.claude/settings.local.json
