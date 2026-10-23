@@ -28,7 +28,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `uv run --frozen seculayer serve --port ${PORT} --mode replay`,
+    // Replay against FakeModel fixture recordings (tests/e2e_fixtures.py), never data/recordings.
+    command: `uv run --frozen python -m tests.e2e_fixtures artifacts/e2e-recordings && SECULAYER_RECORDINGS_DIR=artifacts/e2e-recordings uv run --frozen seculayer serve --port ${PORT} --mode replay`,
     cwd: "..",
     url: `http://127.0.0.1:${PORT}/api/health`,
     reuseExistingServer: false,

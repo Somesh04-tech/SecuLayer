@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     classifier_dir: Path = Field(
         default=Path("models/prompt-guard-2-22m"), alias="SECULAYER_CLASSIFIER_DIR"
     )
+    # Overrides data/recordings. Only the e2e suite sets it, to point at FakeModel fixtures.
+    recordings_override: Path | None = Field(default=None, alias="SECULAYER_RECORDINGS_DIR")
     log_level: Literal["debug", "info", "warning", "error"] = Field(
         default="info", alias="SECULAYER_LOG_LEVEL"
     )
@@ -76,6 +78,9 @@ class Settings(BaseSettings):
 
     @property
     def recordings_dir(self) -> Path:
+        if self.recordings_override is not None:
+            path = self.recordings_override
+            return path if path.is_absolute() else REPO_ROOT / path
         return self.data_dir / "recordings"
 
     @property

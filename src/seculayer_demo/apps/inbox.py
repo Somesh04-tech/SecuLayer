@@ -78,6 +78,7 @@ class InboxApp(ToyApp):
                     "outside": True,
                     "case_specific": self.case.extra_email is not None
                     and e.id == self.case.extra_email.id,
+                    "reads": self.reads(email_segment(e)),
                 }
                 for e in self.emails()
             ],

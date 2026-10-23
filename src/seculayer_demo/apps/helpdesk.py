@@ -20,6 +20,21 @@ def article_text(article: Article) -> str:
     return f"{header}\n{article.body}"
 
 
+def article_segment(article: Article) -> Segment:
+    return Segment(
+        f"kb:{article.id}",
+        Source.EXTERNAL,
+        article_text(article),
+        format="markdown",
+        label=article.title,
+        meta=(
+            ("author", article.author),
+            ("edited", article.edited),
+            ("verified", "true" if article.verified else "false"),
+        ),
+    )
+
+
 class HelpDeskApp(ToyApp):
     def retrieved(self) -> list[Article]:
         top_k = int(self.scenario.settings.get("top_k", 3))
@@ -45,20 +60,7 @@ class HelpDeskApp(ToyApp):
                 segments.append(
                     Segment(f"kb-gap-{index}", Source.DEVELOPER, "\n\n", outside_scaffold=True)
                 )
-            segments.append(
-                Segment(
-                    f"kb:{article.id}",
-                    Source.EXTERNAL,
-                    article_text(article),
-                    format="markdown",
-                    label=article.title,
-                    meta=(
-                        ("author", article.author),
-                        ("edited", article.edited),
-                        ("verified", "true" if article.verified else "false"),
-                    ),
-                )
-            )
+            segments.append(article_segment(article))
         return PromptLayout(
             (
                 Message("developer", tuple(segments), label="Developer instructions"),
@@ -80,6 +82,7 @@ class HelpDeskApp(ToyApp):
                     "verified": a.verified,
                     "body": a.body,
                     "case_specific": a.id in added,
+                    "reads": self.reads(article_segment(a)),
                 }
                 for a in self.retrieved()
             ],

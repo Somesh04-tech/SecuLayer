@@ -63,3 +63,13 @@ class ToyApp:
     def setup(self) -> dict[str, Any]:
         """The setup content the Lab shows (emails, pages, articles, notes)."""
         return {}
+
+    def reads(self, segment: Segment) -> list[dict[str, Any]]:
+        """What the model reads of an outside item, as parts: the raw text the naive app sends,
+        with hidden and injected spans marked (for "Show what the AI reads")."""
+        from seculayer_demo.anatomy import segment_parts
+
+        return [
+            part.model_dump(exclude={"segment_id", "removed"})
+            for part in segment_parts(segment, self.case.injected_text)
+        ]
