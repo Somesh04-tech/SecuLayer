@@ -20,7 +20,12 @@ async function guardNetwork(page: Page): Promise<string[]> {
 }
 
 async function expectNoSeriousAxeViolations(page: Page) {
-  const results = await new AxeBuilder({ page }).analyze();
+  // The toy apps' sandboxed iframes hold fictional email and page content, not our UI, and
+  // can't run axe's script; legacy mode scans the page without opening helper pages.
+  const results = await new AxeBuilder({ page })
+    .setLegacyMode(true)
+    .exclude("iframe[sandbox]")
+    .analyze();
   const serious = results.violations
     .filter((v) => v.impact === "serious" || v.impact === "critical")
     .map((v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(" ")).join(", ")})`);
@@ -94,7 +99,7 @@ test("home: white page, Atkinson font, no pill shapes, clean axe scan, local req
 
 const SCREENS: [string, string][] = [
   ["/lab", "Attack Lab"],
-  ["/lab/inbox", "Attack Lab"],
+  ["/lab/inbox", "Inbox assistant"],
   ["/how", "How SecuLayer works"],
   ["/results", "Results"],
   ["/limits", "What SecuLayer can't stop"],

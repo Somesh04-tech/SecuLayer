@@ -52,7 +52,12 @@ async function guardNetwork(page: Page): Promise<string[]> {
 }
 
 async function expectCleanAxe(page: Page) {
-  const results = await new AxeBuilder({ page }).analyze();
+  // The toy apps' sandboxed iframes hold fictional email and page content, not our UI, and
+  // can't run axe's script; legacy mode scans the page without opening helper pages.
+  const results = await new AxeBuilder({ page })
+    .setLegacyMode(true)
+    .exclude("iframe[sandbox]")
+    .analyze();
   const serious = results.violations
     .filter((v) => v.impact === "serious" || v.impact === "critical")
     .map((v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(" ")).join(", ")})`);
@@ -87,10 +92,7 @@ async function runBothWays(page: Page, request: APIRequestContext, caseId: strin
   return { without, withLayer };
 }
 
-test("inbox assistant: hijacked without SecuLayer, stopped with it", async ({
-  page,
-  request,
-}) => {
+test("inbox assistant: hijacked without SecuLayer, stopped with it", async ({ page, request }) => {
   const offsite = await guardNetwork(page);
   await page.goto("/");
   await page.getByRole("link", { name: "Start with the inbox assistant" }).click();
@@ -122,7 +124,10 @@ test("inbox assistant: hijacked without SecuLayer, stopped with it", async ({
 test("support chat: the override attack, both ways", async ({ page, request }) => {
   const offsite = await guardNetwork(page);
   await page.goto("/");
-  await page.getByRole("link", { name: /Support chat/ }).first().click();
+  await page
+    .getByRole("link", { name: /Support chat/ })
+    .first()
+    .click();
   await expect(page).toHaveURL(/\/lab\/support/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Support chat");
   await runBothWays(page, request, "support.override");

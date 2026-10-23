@@ -52,11 +52,13 @@ export function AttackerServer({
                     {event.destination}
                   </span>{" "}
                   ·{" "}
-                  {event.zero_click
-                    ? event.channel === "chat"
+                  {event.channel === "email"
+                    ? "already delivered"
+                    : event.channel === "chat"
                       ? "shown to the attacker"
-                      : "zero-click"
-                    : `if ${userName} clicks`}
+                      : event.zero_click
+                        ? "zero-click"
+                        : `if ${userName} clicks`}
                 </p>
                 <p className="mt-1 rounded-chip bg-danger-bg px-2 py-1 break-words text-danger-ink">
                   {event.data}

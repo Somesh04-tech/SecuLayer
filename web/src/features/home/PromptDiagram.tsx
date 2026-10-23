@@ -67,15 +67,11 @@ export function PromptDiagram() {
       <div className="mt-3 flex justify-center text-ink-3">
         <ArrowDown {...iconProps} />
       </div>
-      <div className="mt-3 flex items-center justify-center gap-3 text-small text-ink-2">
-        <span className="rounded-control border border-border-strong px-3 py-1.5 font-semibold text-ink">
-          One model
-        </span>
+      <p className="mt-3 flex items-center justify-center gap-3 text-small text-ink-2">
+        <span className="font-semibold text-ink">One model</span>
         <ArrowRight {...iconProps} className="text-ink-3" />
-        <span className="rounded-control border border-border-strong px-3 py-1.5">
-          Reply and actions
-        </span>
-      </div>
+        <span>Reply and actions</span>
+      </p>
       <p className="mt-4 text-small text-ink-3">
         The model gets all of this as one text. Only the wording says which part came from a
         stranger.

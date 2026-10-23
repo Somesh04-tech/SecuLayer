@@ -22,9 +22,7 @@ import {
 export const REPLAY_PACE_MS = 150;
 
 export type LayerRow =
-  | { status: "waiting" }
-  | { status: "running" }
-  | { status: "done"; verdict: LayerVerdict };
+  { status: "waiting" } | { status: "running" } | { status: "done"; verdict: LayerVerdict };
 
 export interface ToolStep {
   proposed: ToolProposed;
