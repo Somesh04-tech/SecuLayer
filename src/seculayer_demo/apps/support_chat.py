@@ -10,4 +10,7 @@ from seculayer_demo.apps.base import ToyApp
 
 class SupportChatApp(ToyApp):
     def setup(self) -> dict[str, Any]:
-        return {"kind": "chat", "message": self.case.user_request}
+        from seculayer.types import Segment, Source
+
+        user = Segment("user", Source.USER, self.case.user_request)
+        return {"kind": "chat", "message": self.case.user_request, "reads": self.reads(user)}

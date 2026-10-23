@@ -225,3 +225,17 @@ def test_run_event_schema_is_in_openapi(tmp_path: Path) -> None:
     ):
         assert name in schemas
     assert client.get("/api/schema/run-event").json() == []
+
+
+def test_setup_says_what_the_ai_reads(tmp_path: Path) -> None:
+    client = client_for(make_settings(tmp_path), tmp_path)
+    inbox = client.get("/api/scenarios/inbox").json()
+    featured = next(c for c in inbox["cases"] if c["id"] == "inbox.hidden_forward")
+    email = next(e for e in featured["setup"]["emails"] if e["case_specific"])
+    hidden = [p for p in email["reads"] if p["hidden"]]
+    assert hidden and all(p["source"] == "injected" and p["hidden_kind"] == "css" for p in hidden)
+    assert "".join(p["text"] for p in email["reads"]) == email["body"]
+    page = client.get("/api/scenarios/page").json()
+    smuggled = next(c for c in page["cases"] if c["id"] == "page.tag_smuggling")
+    kinds = {p["hidden_kind"] for p in smuggled["setup"]["reads"] if p["hidden"]}
+    assert kinds == {"tag_chars"}

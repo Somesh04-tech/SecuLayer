@@ -1,5 +1,5 @@
 # SecuLayer build progress
-Plan: docs/PLAN.md · Last updated: 2026-10-23, session 2
+Plan: docs/PLAN.md · Last updated: 2026-10-23, session 2 (M2–M4)
 
 ## Milestones
 | ID | Name | Status (not started / in progress / done) | Verified by | Commit |
@@ -7,7 +7,7 @@ Plan: docs/PLAN.md · Last updated: 2026-10-23, session 2
 | M1 | Foundation | done | make check (43 pytest, 20 Vitest), make e2e (8 Playwright tests), screenshots m1-*.png reviewed, run.sh curl checks, doctor, storage check | see `git log` ("M1: foundation …") |
 | M2 | SecuLayer core and scenario data | done, except the committed classifier score cache (see Known issues) | make check (unit tests for every layer, data validation), `seculayer screen --case inbox.hidden_forward` with and without the cleaner | see `git log` ("M2: SecuLayer layers, …") |
 | M3 | Model gateway, toy apps and run API | in progress: all code and tests done; the first recordings and `doctor --online` need OPENAI_API_KEY | make check (371 pytest, 20 Vitest, lint, typecheck), make e2e (8 Playwright tests), make types | see `git log` ("M3: model gateway, …") |
-| M4 | Attack Lab, part 1 (run both ways) | not started | | |
+| M4 | Attack Lab, part 1 (run both ways) | done (verified against FakeModel fixture recordings; real recordings still pending, see M3) | make check (372 pytest, 37 Vitest incl. ConfirmDialog), make e2e (16 Playwright tests: featured cases both ways, trial navigator, keyboard-only flow, axe, local-only requests), screenshots m4-lab-*.png and m1-home-*.png reviewed | see `git log` ("M4: …") |
 | M5 | Attack Lab, part 2 (show the mechanism) | not started | | |
 | M6 | Attack qualification and full recordings | not started | | |
 | M7 | Evaluation and Results page | not started | | |
@@ -50,6 +50,29 @@ Session 2 ran in a Claude Code cloud container (Linux, Python 3.12, Node 22.22),
 - the secret scan.
 
 **How to demo it right now**: `uv run seculayer screen --case inbox.hidden_forward` (add `--layers=-hidden_text` to see screening withhold the email). `uv run seculayer run --case inbox.hidden_forward --protected` reports "not recorded" until recordings exist.
+
+## M4: the Attack Lab (session 2)
+- **Home**: scenario cards from `/api/scenarios`, with the lethal-trifecta markers (the support chat shows outside content as absent). The prompt diagram's "One model" and "Reply and actions" nodes are now plain text, which closes that known issue.
+- **Lab** (`/lab/:scenarioId?case=`):
+  - the scenario header with the trifecta and "How this app is built" (with the developer instructions);
+  - the case list (attacks are primary cases only; Up/Down/Home/End move, Enter or Space selects, synced to `?case=`);
+  - "The setup", with the four toy-app views in empty-sandbox iframes and the "Show what the AI reads" switch;
+  - the two run columns and "About this attack".
+- **Run columns** (`web/src/features/lab/run/`):
+  - the outcome banner (`data-testid="outcome-banner"`, `data-outcome`), the trial navigator, and the pipeline rows with §4.2 verdict chips and details;
+  - ReplyView, which never renders `<img>` and gives outside links no `href`;
+  - ActionsList, the attacker's-server panel and ConfirmDialog ("Don't send" focused; Escape declines);
+  - a simple "What the model received" preview (M5 builds the full anatomy);
+  - every §3.4 state the run side can reach.
+- **Shared code**: `api/types.ts`, `api/stream.ts` (NDJSON reader) and `features/lab/useRun.ts` (event reducer, 150 ms replay pacing, decisions).
+- **e2e**: the server replays FakeModel fixture recordings (`tests/e2e_fixtures.py`, written to `artifacts/e2e-recordings` through `SECULAYER_RECORDINGS_DIR`). The specs read each expected outcome from the API, so they hold for real recordings too.
+- **Screenshot review**, of `m4-lab-before-{1440,1280}.png`, `m4-lab-after-{1440,1280}.png` and `m1-home-{1440,1280}.png` against §4 and §4.7. All of these hold:
+  - the page is pure white;
+  - there are no gradients, pills, card shadows, eyebrow labels or centred hero;
+  - bordered containers go two levels deep at most (the inbox panel holds the email frame; a run column holds the attacker's-server box);
+  - colour carries meaning only.
+
+  One fix: the attacker's-server panel said "if Dana clicks" for an email that had already been sent; it now says "already delivered". In the full-page screenshots the sticky case list appears lower after scrolling; that is the sticky position, not a layout bug.
 
 ## Measured facts
 - Attack qualification: not run yet (M6).
@@ -108,18 +131,25 @@ Session 2 ran in a Claude Code cloud container (Linux, Python 3.12, Node 22.22),
 - 2026-10-23: the security-blog fixture's quoted address uses `invoice-mirror.example`, not `example.net`: every domain stays under `.example`.
 - 2026-10-23: CLAUDE.md says "don't push; there is no remote". This cloud session has a GitHub remote, and its task instructions say to push to `claude/relaxed-pasteur-aytywd`, so the commits were pushed there. Nothing else changed.
 
+- 2026-10-23 (M4): "Show what the AI reads" shows the raw source the naive app actually sends (email or page HTML), with hidden parts and injected text marked. §4.5 says "extracted text", but the raw source is literally what the model reads.
+- 2026-10-23 (M4): axe runs with `setLegacyMode(true)` and excludes `iframe[sandbox]`. The toy apps' sandboxed iframes hold fictional content, and they can't run axe's script, which crashed the scanner.
+- 2026-10-23 (M4): built with two parallel agents, one on Home and the Lab's setup side and one on the run columns, after the main session wrote the shared API types, stream reader and useRun hook. The main session wrote the e2e specs and did the integration.
+- 2026-10-23 (M4): while a run is paused, the column shows a client-side "Paused" banner, because the server sends `run.finished` only after the decision. "Reset the layers" is left out of the not-recorded notice, because every layer is on until M5 adds the Layers menu.
+
 ## Known issues
 - **No recordings yet.** M3 step 6 and the acceptance check `env -u OPENAI_API_KEY uv run seculayer run --case inbox.hidden_forward --protected --mode replay` need real recordings. Making them needs the developer's key; until then that command ends with "This combination of layers wasn't recorded". Recordings are never fabricated.
 - **`doctor --online` hasn't been run against the real API.** Run it before recording and note anything it rejects (for example `reasoning.effort: none` or `parallel_tool_calls` on the pinned snapshots).
 - **`data/cache/classifier_scores.jsonl` doesn't exist yet**, because the classifier couldn't be downloaded in the cloud container. Run `uv run seculayer fetch-model && uv run seculayer warm-classifier` on the laptop, then commit the file. Until then, screening shows "Classifier unavailable (model not downloaded)" and the classifier-only catches are missing: support.obfuscate and the planned 0.999 false alarm on support.n_instructions.
 - In the cloud container, `make e2e` needed a Playwright browsers folder that links build 1248 to the preinstalled 1243. On the laptop, `.cache/ms-playwright` already has 1248.
 - The Playwright web server now runs `uv run --frozen`. Without `--frozen`, uv rewrote `uv.lock`'s `exclude-newer` timestamp in a different timezone.
-- Carried over from M1: in the Home diagram, the "One model" and "Reply and actions" nodes look a little like buttons (revisit in M4); eslint 9.39.5 is deprecated (kept for jsx-a11y).
+- Carried over from M1: eslint 9.39.5 is deprecated (kept for jsx-a11y).
+- The toy pages inside the sandboxed iframes render in the browser's default (serif) font. The CSP and the token rules keep any font-family out of them, and that's acceptable: they're fictional third-party content.
 
 ## Next step
-On the laptop, with OPENAI_API_KEY in `.env`:
-1. Run `uv run seculayer doctor --online`. Fix and record anything the API rejects.
-2. Run `uv run seculayer fetch-model && uv run seculayer warm-classifier`, then commit `data/cache/classifier_scores.jsonl`.
-3. Run `uv run seculayer record --cases inbox.hidden_forward,support.override --configs A,B,combos --trials 3`. The command prints its token estimate and asks before starting (about 40–80 real calls once the layer combinations deduplicate).
-4. Check that `env -u OPENAI_API_KEY uv run seculayer run --case inbox.hidden_forward --protected --mode replay` completes, record the token use here, mark M3 done and commit "M3: first recordings".
-5. Then continue with M4 (the Attack Lab UI), using `web/src/api/types.gen.ts` and `POST /api/runs`.
+1. On the laptop, with OPENAI_API_KEY in `.env`, finish M3:
+   - run `uv run seculayer doctor --online`;
+   - run `uv run seculayer fetch-model && uv run seculayer warm-classifier`;
+   - run `uv run seculayer record --cases inbox.hidden_forward,support.override --configs A,B,combos --trials 3`;
+   - check that `env -u OPENAI_API_KEY uv run seculayer run --case inbox.hidden_forward --protected --mode replay` completes;
+   - commit the recordings and the score cache.
+2. Then M5 (prompt anatomy, Layers menu, glossary, timeline, presenter shortcuts). Don't start it until the developer asks.

@@ -1,11 +1,11 @@
-import { ChevronRight, LayoutGrid } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useEffect } from "react";
 
 import { ButtonLink } from "../components/Button";
-import { EmptyState } from "../components/EmptyState";
 import { Container } from "../components/Page";
 import { Term } from "../components/Term";
 import { PromptDiagram } from "../features/home/PromptDiagram";
+import { ScenarioCards } from "../features/home/ScenarioCards";
 
 export function HomePage() {
   useEffect(() => {
@@ -40,12 +40,12 @@ export function HomePage() {
         <h2 id="scenarios-heading" className="text-h2 text-ink">
           Choose a scenario
         </h2>
+        <p className="mt-2 max-w-prose text-body text-ink-2">
+          Four toy apps, each built the way many real apps are. The markers show which parts of the{" "}
+          <Term id="lethalTrifecta">lethal trifecta</Term> each one has.
+        </p>
         <div className="mt-6">
-          <EmptyState
-            icon={LayoutGrid}
-            title="No scenarios yet"
-            help="The four toy apps (support chat, inbox assistant, page summarizer and HelpDesk) appear here once their data is added to this build."
-          />
+          <ScenarioCards />
         </div>
       </section>
     </Container>

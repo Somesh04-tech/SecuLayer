@@ -65,4 +65,5 @@ class PageSummarizerApp(ToyApp):
             "html": page.html,
             "title": self.page_segment().label,
             "notes": notes.group(1) if notes else "",
+            "reads": self.reads(self.page_segment()),
         }
