@@ -142,9 +142,10 @@ class OpenAITransport:
         except openai.APIConnectionError:
             raise ModelError("Couldn't reach the OpenAI API. Check the network.") from None
         except openai.APIStatusError as error:
-            # The message never includes the key; status and the API's own message are enough.
+            # Authentication errors may echo a credential in the provider's message.
+            # Keep only the status; no provider body belongs in logs or UI errors.
             raise ModelError(
-                f"The OpenAI API returned {error.status_code}: {error.message}",
+                f"The OpenAI API returned HTTP {error.status_code}.",
                 retryable=error.status_code >= 500,
             ) from None
         dumped: dict[str, Any] = response.model_dump(mode="json")
@@ -202,7 +203,17 @@ class ModelGateway:
 
         assert self.transport is not None
         if self.budget is not None:
-            self.budget.check(ESTIMATED_TOKENS_PER_CALL)
+            # A byte per input token plus output allowance and protocol overhead is deliberately
+            # conservative near a hard cap. Never change the request's model settings to fit.
+            from seculayer_demo.gateway.recordings import canonical_json
+
+            reserve = max(
+                ESTIMATED_TOKENS_PER_CALL,
+                len(canonical_json(request).encode("utf-8"))
+                + int(request.get("max_output_tokens", 2000))
+                + 1000,
+            )
+            self.budget.check(reserve, model)
         start = time.perf_counter()
         response = self.transport.create(dict(request))
         latency = round((time.perf_counter() - start) * 1000, 1)

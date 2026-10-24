@@ -235,6 +235,10 @@ def record(
     configs: Annotated[str, typer.Option(help="A, B, C, D, C+ and/or combos.")] = "A,B",
     trials: Annotated[int, typer.Option(min=1, max=5, help="Trials per case.")] = 3,
     yes: Annotated[bool, typer.Option("--yes", help="Don't ask before starting.")] = False,
+    replacement: Annotated[
+        str | None,
+        typer.Option("--replace-recording", help="Approved repair of one exact SHA256:TRIAL."),
+    ] = None,
 ) -> None:
     """Record missing model calls (live, within SECULAYER_TOKEN_BUDGET)."""
     from seculayer_demo.gateway import ModelGateway, RecordingStore, TokenBudget
@@ -243,7 +247,7 @@ def record(
         configs as make_configs,
     )
     from seculayer_demo.recording_batch import (
-        estimate_tokens,
+        estimate_by_model,
         plan_jobs,
         run_jobs,
         select_cases,
@@ -251,6 +255,21 @@ def record(
     from seculayer_demo.server.runs import make_classifier
 
     settings = _load_settings()
+    if replacement is not None:
+        from seculayer_demo.recording_repair import replace_recording
+
+        try:
+            replace_recording(
+                settings,
+                cases,
+                replacement,
+                confirm=lambda message: yes or typer.confirm(message),
+                log=typer.echo,
+            )
+        except (ValueError, RuntimeError) as error:
+            typer.echo(str(error), err=True)
+            raise typer.Exit(1) from None
+        return
     names = [n.strip() for n in configs.split(",") if n.strip()]
     try:
         chosen = make_configs(names, settings.model, settings.compare_model)
@@ -260,16 +279,17 @@ def record(
         raise typer.Exit(2) from None
     jobs = plan_jobs(selected, chosen, trials, combos="combos" in names, target=settings.model)
     budget = TokenBudget(settings.token_budget, settings.spend_log)
-    estimate = estimate_tokens(jobs)
-    typer.echo(
-        f"{len(selected)} cases, {len(jobs)} runs. Estimated at most {estimate:,} tokens if "
-        f"nothing is recorded yet; {budget.remaining:,} of {settings.token_budget:,} remain."
-    )
-    if estimate > budget.remaining:
-        typer.echo(
-            "That exceeds the remaining budget (SECULAYER_TOKEN_BUDGET). Not starting.", err=True
-        )
-        raise typer.Exit(1)
+    typer.echo(f"{len(selected)} cases, {len(jobs)} runs; estimates before recording reuse:")
+    from seculayer_demo.gateway import BudgetExceeded
+
+    try:
+        estimates = estimate_by_model(jobs, settings.judge_model)
+        estimates.setdefault(settings.compare_model, (0, 0))
+        estimates.setdefault(settings.model, (0, 0))
+        budget.preflight(estimates, typer.echo)
+    except BudgetExceeded as error:
+        typer.echo(f"Batch exceeds the remaining budget: {error}. Not starting.", err=True)
+        raise typer.Exit(1) from None
     if not settings.has_api_key:
         typer.echo("record needs OPENAI_API_KEY in .env.", err=True)
         raise typer.Exit(2)
@@ -287,9 +307,42 @@ def record(
             classifier=make_classifier(settings),
             log=typer.echo,
         )
+    except RuntimeError as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(1) from None
     finally:
         written = budget.flush(label=f"record {cases} {configs} x{trials}")
     typer.echo(f"Done: {counts}. {written:,} tokens logged to data/spend.jsonl.")
+
+
+@app.command("replay-check")
+def replay_check_command(
+    cases: Annotated[str, typer.Option(help="Case IDs or patterns.")] = "*",
+    model: Annotated[str | None, typer.Option(help="Default: gpt-5.4-mini target.")] = None,
+    trials: Annotated[int, typer.Option(min=1, max=3)] = 3,
+) -> None:
+    """Audit offline coverage and report unreferenced recordings; never deletes files."""
+    from seculayer_demo.replay_check import replay_check
+
+    missing = replay_check(_load_settings(), cases, model, trials, typer.echo)
+    raise typer.Exit(1 if missing else 0)
+
+
+@app.command()
+def qualify(
+    cases: Annotated[str, typer.Option(help="Attack case IDs or patterns.")],
+    round_name: Annotated[
+        str, typer.Option("--round", help="Audit label, e.g. original or round-1.")
+    ],
+) -> None:
+    """Three LIVE configuration-A trials; append an audit, never API recordings."""
+    from seculayer_demo.qualification import qualify_cases
+
+    try:
+        qualify_cases(_load_settings(), cases, round_name, typer.echo)
+    except (ValueError, RuntimeError) as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(1) from None
 
 
 @app.command("warm-classifier")
@@ -307,6 +360,35 @@ def warm_classifier_command() -> None:
     typer.echo(
         f"Scored {scored} new texts; {len(classifier.cache)} in {classifier_cache_path(settings)}."
     )
+
+
+@app.command("recording-report")
+def recording_report_command(
+    output: Annotated[
+        str, typer.Option(help="Offline M6 outcome inventory.")
+    ] = "data/m6-recordings.json",
+) -> None:
+    """Replay the measured matrix into an outcome inventory (no API calls)."""
+    import json
+    from pathlib import Path
+
+    from seculayer_demo.recording_report import recording_report
+
+    report = recording_report(_load_settings())
+    errors = [
+        (case_id, config, row["trial"])
+        for case_id, configurations in report["cases"].items()
+        for config, rows in configurations.items()
+        for row in rows
+        if row["outcome"] == "error" or row.get("if_approved") == "error"
+    ]
+    if errors:
+        typer.echo(f"Incomplete matrix: {len(errors)} runs failed to replay. No report written.")
+        raise typer.Exit(1)
+    path = Path(output)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    typer.echo(f"Offline outcome inventory: {path}")
 
 
 @app.command("export-openapi")

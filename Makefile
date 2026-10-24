@@ -64,7 +64,7 @@ record:
 	uv run --frozen seculayer record --cases '$(CASES)' --configs '$(CONFIGS)' --trials $(TRIALS)
 
 replay-check:
-	@echo "make replay-check: not implemented yet (M6)"; exit 1
+	uv run --frozen seculayer replay-check
 
 types:
 	uv run --frozen seculayer export-openapi web/src/api/openapi.json

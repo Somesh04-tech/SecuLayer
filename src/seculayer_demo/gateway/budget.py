@@ -8,10 +8,17 @@ from __future__ import annotations
 
 import json
 import threading
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
 from seculayer_demo.status import tokens_used
+
+DAILY_LIMITS = {"gpt-5.4-mini": 2_500_000, "gpt-5.4": 250_000}
+
+
+def daily_limit(model: str) -> int | None:
+    return next((limit for prefix, limit in DAILY_LIMITS.items() if model.startswith(prefix)), None)
 
 
 class BudgetExceeded(RuntimeError):
@@ -34,12 +41,56 @@ class TokenBudget:
     def remaining(self) -> int:
         return max(self.limit - self.used, 0)
 
-    def check(self, estimated_tokens: int) -> None:
+    def usage_by_model(self, *, today_only: bool = False) -> dict[str, int]:
+        usage: dict[str, int] = {}
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
+        if self.spend_log.is_file():
+            for line in self.spend_log.read_text(encoding="utf-8").splitlines():
+                if not line.strip():
+                    continue
+                entry = json.loads(line)
+                if today_only and entry["date"] != today:
+                    continue
+                model = entry["model"]
+                usage[model] = usage.get(model, 0) + int(entry["tokens"])
+        for model, entry in self._pending.items():
+            usage[model] = usage.get(model, 0) + int(entry["tokens"])
+        return usage
+
+    def check(self, estimated_tokens: int, model: str | None = None) -> None:
         if estimated_tokens > self.remaining:
             raise BudgetExceeded(
                 f"needs about {estimated_tokens:,} tokens but only {self.remaining:,} of "
                 f"{self.limit:,} remain (SECULAYER_TOKEN_BUDGET)"
             )
+        if model is not None and (limit := daily_limit(model)) is not None:
+            used = self.usage_by_model(today_only=True).get(model, 0)
+            if used + estimated_tokens > limit:
+                raise BudgetExceeded(
+                    f"{model} needs about {estimated_tokens:,} tokens but only "
+                    f"{max(limit - used, 0):,} of its {limit:,}/day remain (UTC)"
+                )
+
+    def preflight(self, estimates: dict[str, tuple[int, int]], log: Callable[[str], None]) -> None:
+        """Print calls, tokens and spend for EVERY model before checking a live batch."""
+        emit = log
+        all_time = self.usage_by_model()
+        today = self.usage_by_model(today_only=True)
+        for model in sorted(set(estimates) | set(all_time) | set(DAILY_LIMITS)):
+            # Only show snapshots, rather than the family names used by DAILY_LIMITS.
+            if model in DAILY_LIMITS and model not in estimates and model not in all_time:
+                continue
+            calls, tokens = estimates.get(model, (0, 0))
+            limit = daily_limit(model)
+            emit(
+                f"  {model}: estimated {calls:,} calls / {tokens:,} tokens; "
+                f"used {all_time.get(model, 0):,} total, {today.get(model, 0):,} today "
+                f"/ {limit or 0:,} daily (UTC)."
+            )
+        emit(f"  Total used {self.used:,} / {self.limit:,}; remaining {self.remaining:,}.")
+        self.check(sum(tokens for _, tokens in estimates.values()))
+        for model, (_, tokens) in estimates.items():
+            self.check(tokens, model)
 
     def add(self, model: str, tokens: int, cost: float) -> None:
         with self._lock:

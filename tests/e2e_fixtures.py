@@ -192,6 +192,23 @@ def build(target: Path) -> int:
             )
             for _event in runner.events():
                 pass
+    # The comparison snapshot has one trial and only full-on/full-off recordings (§6.8).
+    for protected in (False, True):
+        runner = AgentRunner(
+            RunRequest(
+                "inbox.hidden_forward",
+                protected,
+                "gpt-5.4-2026-03-05",
+                ON if protected else OFF,
+                1,
+            ),
+            gateway=ModelGateway("record", store, transport=FakeModel(inbox(None, SUMMARY))),
+            judge_model=MODEL,
+            classifier=None,
+            run_id="comparison-fixture",
+        )
+        for _event in runner.events():
+            pass
     return len(store)
 
 

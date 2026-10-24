@@ -125,6 +125,28 @@ def estimate_tokens(jobs: list[Job], *, combos_variants: int = 12) -> int:
     return calls * TOKENS_PER_CALL
 
 
+def estimate_by_model(jobs: list[Job], judge_model: str) -> dict[str, tuple[int, int]]:
+    """Planning estimates include the mini judge even when the app uses the larger model.
+
+    Combinations share requests; account for twelve input variants per case. Existing
+    recordings reduce actual spend, and the gateway checks every missing call separately.
+    """
+    calls: dict[str, int] = {}
+    seen_combos: set[str] = set()
+    for job in jobs:
+        count = 1
+        if job.config.name == "combo":
+            if job.case.id in seen_combos:
+                continue
+            seen_combos.add(job.case.id)
+            count = 12
+        app_calls = 4 if job.case.scenario_id == "inbox" else 1
+        calls[job.config.model] = calls.get(job.config.model, 0) + app_calls * count
+        if job.config.protected and job.config.layers.screening and job.config.layers.judge:
+            calls[judge_model] = calls.get(judge_model, 0) + count
+    return {model: (n, n * TOKENS_PER_CALL) for model, n in calls.items()}
+
+
 def run_jobs(
     jobs: list[Job],
     gateway: ModelGateway,
@@ -160,5 +182,10 @@ def run_jobs(
             log(f"  {job.config.name:<5} {job.case.id:<40} trial {job.trial}: {outcome}")
         if outcome == "error" and runner.finished is not None:
             log(f"        {runner.finished.banner.sentence}")
+            raise RuntimeError("Batch stopped on an error; record resumes missing calls.")
+        if job.config.name == "combo" and (
+            index == len(jobs) or jobs[index].case.id != job.case.id
+        ):
+            log(f"  combo {job.case.id}: all 256 switch combinations checked")
     counts["live_calls"] = gateway.live_calls - before
     return counts

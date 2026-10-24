@@ -88,7 +88,11 @@ def format_event(event: BaseModel) -> list[str]:
         dialog = data["dialog"]
         return [f"  ⏸ paused: send to {', '.join(dialog['to'])}? {dialog['reason']}"]
     if kind == "attacker.event":
-        click = "zero-click" if data["zero_click"] else "if clicked"
+        click = (
+            "delivered"
+            if data["channel"] == "email"
+            else ("zero-click" if data["zero_click"] else "if clicked")
+        )
         return [
             f"  ☠ attacker's server ({data['channel']}, {click}) {data['destination']}: "
             f"{_short(data['data'], 80)}"

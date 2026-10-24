@@ -144,3 +144,23 @@ test("presenter shortcuts run both sides and move between cases", async ({ page,
   await page.keyboard.press("[");
   await expect(page).toHaveURL(/case=inbox\.hidden_forward/);
 });
+
+test("comparison model replays all-on layers and shows its own trial count", async ({ page }) => {
+  await guardNetwork(page);
+  await page.goto("/lab/inbox?case=inbox.hidden_forward");
+  await setLayers(page, ["Prompt hardening"]);
+  await page.getByLabel("Model", { exact: true }).selectOption("gpt-5.4-2026-03-05");
+  await expect(page.getByTestId("layer-menu")).toBeDisabled();
+  await expect(page.getByTestId("layer-menu")).toHaveText("Layers: all 5 on");
+  await page.getByRole("button", { name: "Run with SecuLayer" }).click();
+  const col = column(page, "With SecuLayer");
+  await expect(col.getByTestId("outcome-banner")).toBeVisible({ timeout: 20_000 });
+  await expect(col).toContainText("Recorded run 1 of 1");
+  await page.getByRole("button", { name: "Run without SecuLayer" }).click();
+  const without = column(page, "Without SecuLayer");
+  await expect(without.getByTestId("outcome-banner")).toBeVisible({ timeout: 20_000 });
+  await expect(without).toContainText("Recorded run 1 of 1");
+  await expect(without.getByTestId("recorded-count")).toHaveText(
+    "The attack worked in 0 of 1 recorded runs.",
+  );
+});

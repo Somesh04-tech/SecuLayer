@@ -117,8 +117,9 @@ export function RunColumn({
   const meta = useMeta();
   const live = meta.status === "ok" && meta.data.mode === "live";
   const liveAvailable = meta.status === "ok" && meta.data.live_available;
+  const compareReplay = !live && meta.status === "ok" && model === meta.data.models.compare;
   // Replay opens on the first recorded trial in which the unprotected run was hijacked.
-  const recorded = caseDetail.recorded;
+  const recorded = compareReplay ? null : caseDetail.recorded;
   const defaultTrial = recorded?.default_trial ?? 1;
   const [trial, setTrial] = useState(defaultTrial);
   const { state } = run;
@@ -128,7 +129,7 @@ export function RunColumn({
   const start = (nextTrial: number) => {
     setTrial(nextTrial);
     onRun();
-    const custom = side === "with" && layersOn(layers) < LAYERS_TOTAL;
+    const custom = side === "with" && !compareReplay && layersOn(layers) < LAYERS_TOTAL;
     void run.start({
       case_id: caseDetail.id,
       protected: side === "with",
@@ -174,7 +175,11 @@ export function RunColumn({
           </Button>
         )}
         {side === "with" && onLayersChange && (
-          <LayerMenu layers={layers} onChange={onLayersChange} disabled={busy} />
+          <LayerMenu
+            layers={compareReplay ? ALL_ON : layers}
+            onChange={onLayersChange}
+            disabled={busy || compareReplay}
+          />
         )}
       </div>
 
@@ -274,7 +279,7 @@ export function RunColumn({
         ) : (
           <TrialNavigator
             trial={started.trial}
-            available={started.trials_available}
+            available={started.trials_available || recorded?.trials || 1}
             disabled={busy}
             onChange={start}
           />
@@ -282,9 +287,27 @@ export function RunColumn({
 
       {side === "without" && started?.mode === "replay" && recorded && recorded.trials > 0 && (
         <p className="text-small text-ink-2" data-testid="recorded-count">
-          The attack worked in {recorded.hijacked.length} of {recorded.trials} recorded runs.
+          {recorded.hijacked.length === 0 ? (
+            <>
+              The model resisted this one in {recorded.trials} of {recorded.trials} recorded runs.
+            </>
+          ) : (
+            <>
+              The attack worked in {recorded.hijacked.length} of {recorded.trials} recorded runs.
+            </>
+          )}
         </p>
       )}
+      {side === "without" &&
+        started?.mode === "replay" &&
+        compareReplay &&
+        caseDetail.kind === "attack" &&
+        finished &&
+        finished.outcome !== "error" && (
+          <p className="text-small text-ink-2" data-testid="recorded-count">
+            The attack worked in {finished.outcome === "hijacked" ? 1 : 0} of 1 recorded runs.
+          </p>
+        )}
 
       {side === "with" && (
         <>

@@ -11,6 +11,7 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
+import tempfile
 import threading
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
@@ -134,6 +135,10 @@ class RecordingStore:
             self._load()
             return sorted(self._trials.get(key, set()))
 
+    def entries(self) -> tuple[Recording, ...]:
+        with self._lock:
+            return tuple(self._load().values())
+
     def add(self, recording: Recording, scenario: str) -> None:
         folder = self.root / recording.model
         folder.mkdir(parents=True, exist_ok=True)
@@ -145,3 +150,45 @@ class RecordingStore:
                 handle.write(recording.to_json() + "\n")
             self._index[(recording.key, recording.trial)] = recording
             self._trials.setdefault(recording.key, set()).add(recording.trial)
+
+    def replace(self, old: Recording, new: Recording, *, backup: Path) -> None:
+        """Explicitly replace one call after approval, preserving every other JSONL record.
+
+        The old call is recoverable from backup. Requests, trials and case identities cannot
+        change. Build a complete gzip beside the original, then atomically replace it.
+        """
+        identity = ("key", "trial", "model", "purpose", "case_id")
+        if any(getattr(old, name) != getattr(new, name) for name in identity) or (
+            canonical_json(old.request) != canonical_json(new.request)
+        ):
+            raise ValueError("A replacement must keep the identical request and recording identity")
+        path = self.root / old.model / f"{old.case_id.split('.')[0]}.jsonl.gz"
+        with self._lock:
+            if self._load().get((old.key, old.trial)) != old:
+                raise ValueError("Recording changed since it was selected; refusing replacement")
+            backup.parent.mkdir(parents=True, exist_ok=True)
+            # Exclusive creation prevents a later repair from overwriting the original backup.
+            with backup.open("xb") as raw, gzip.open(raw, "wt", encoding="utf-8") as handle:
+                handle.write(old.to_json() + "\n")
+            with tempfile.NamedTemporaryFile(dir=path.parent, suffix=".tmp", delete=False) as tmp:
+                temporary = Path(tmp.name)
+            try:
+                replaced = 0
+                with (
+                    gzip.open(path, "rt", encoding="utf-8") as source,
+                    gzip.open(temporary, "wt", encoding="utf-8") as target,
+                ):
+                    for line in source:
+                        row = json.loads(line) if line.strip() else {}
+                        if (row.get("key"), row.get("trial")) == (old.key, old.trial):
+                            target.write(new.to_json() + "\n")
+                            replaced += 1
+                        else:
+                            target.write(line)
+                if replaced != 1:
+                    raise ValueError(f"Expected exactly one old recording, found {replaced}")
+                temporary.replace(path)
+            finally:
+                temporary.unlink(missing_ok=True)
+            assert self._index is not None
+            self._index[(new.key, new.trial)] = new

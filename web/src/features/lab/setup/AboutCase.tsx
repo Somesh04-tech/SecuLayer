@@ -44,7 +44,7 @@ export function AboutCase({ caseDetail }: { caseDetail: CaseDetail }) {
           <Row label="What SecuLayer does">{caseDetail.what_stops_it}</Row>
         )}
         {caseDetail.expected && (
-          <Row label="Expected, before measurement">{caseDetail.expected}</Row>
+          <Row label="Recorded behavior (gpt-5.4-mini)">{caseDetail.expected}</Row>
         )}
         {source && source.url && (
           <Row label="It happened for real">
