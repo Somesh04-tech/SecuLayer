@@ -44,7 +44,7 @@ export function HowItWorksPage() {
         </div>
       </section>
 
-      <section aria-labelledby="patterns-heading" className="mt-16">
+      <section id="patterns" aria-labelledby="patterns-heading" className="mt-16 scroll-mt-6">
         <h2 id="patterns-heading" className="text-h2 text-ink">
           Patterns this demo explains but doesn't build
         </h2>
