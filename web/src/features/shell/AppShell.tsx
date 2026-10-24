@@ -35,11 +35,14 @@ function ServerUnreachable() {
 
 function Main() {
   const meta = useMeta();
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
 
+  // A new page starts at the top, unless the link names a section (/how#patterns).
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
+    const target = hash ? document.getElementById(decodeURIComponent(hash.slice(1))) : null;
+    if (target) target.scrollIntoView();
+    else window.scrollTo(0, 0);
+  }, [pathname, hash]);
 
   return (
     <main id="main" tabIndex={-1} className="flex-1">

@@ -1,5 +1,5 @@
 # SecuLayer build progress
-Plan: docs/PLAN.md · Last updated: 2026-10-24, session 6 (M7, cloud container)
+Plan: docs/PLAN.md · Last updated: 2026-10-24, session 6 (M7–M8, cloud container)
 
 ## Milestones
 | ID | Name | Status (not started / in progress / done) | Verified by | Commit |
@@ -11,7 +11,7 @@ Plan: docs/PLAN.md · Last updated: 2026-10-24, session 6 (M7, cloud container)
 | M5 | Attack Lab, part 2 (show the mechanism) | done: **presentable** | make check (378 pytest, 55 Vitest incl. anatomy, ShareBar, Layers menu, timeline and shortcut tests), make e2e (24 Playwright tests: anatomy both tabs, layer toggles rerun, not-recorded state with reset, presenter shortcuts, axe), screenshots m5-anatomy-1440.png and m5-layer-menu-1280.png reviewed | see `git log` ("M5: …") |
 | M6 | Attack qualification and full recordings | done | make check (388 pytest, 55 Vitest, lint/types); env -u OPENAI_API_KEY make e2e (32 passed, one worker, full suite once); replay-check zero missing for both models; 684,722 tokens; 1,781,649 recording bytes | see `git log` ("M6: qualified attacks and full recordings") |
 | M7 | Evaluation and Results page | done | make check (398 pytest incl. 8 metric tests with hand-computed answers and the eval-twice determinism test; 61 Vitest), env -u OPENAI_API_KEY make e2e (36 passed incl. the Results page and its empty state), make eval twice identical apart from generated_at and live latencies, screenshot m7-results-1440.png reviewed | see `git log` ("M7: evaluation and results") |
-| M8 | Explainer pages and Sandbox | not started | | |
+| M8 | Explainer pages and Sandbox | done (laptop views; phones out of scope) | make check (400 pytest, 81 Vitest incl. the sources-equal-§12 test), env -u OPENAI_API_KEY make e2e (52 passed: every page with axe and local-only requests, large-text at 1280 without sideways scroll, the Sandbox replay flow, the /how#patterns anchor), screenshots m8-*.png reviewed | see `git log` ("M8: …") |
 | M9 | Accessibility, presenter readiness and polish | not started | | |
 | M10 | Final verification | not started | | |
 
@@ -56,6 +56,15 @@ Session 2 ran in a Claude Code cloud container (Linux, Python 3.12, Node 22.22),
 - the polite invoice's decline, approval and Escape flows, focus and highlighted data, plus the comparison model's disabled Layers menu and single-trial count.
 
 **How to demo it right now**: `./run.sh` starts the fully recorded replay demo. Both featured attacks open on unprotected trial 2 (each worked in 1 of 3 runs); all three protected trials stop them. For the polite invoice, full-protection trial 1 is blocked, then Next recorded run opens trial 2's confirmation dialog. The measured script is PLAN §3.6. `screen --layers=-hidden_text` is local and has no judge, so it misses the frozen inbox note; the recorded judge and tool guard are its backstops.
+
+## M8: explainer pages and Sandbox (session 6, cloud container, no API calls)
+- **How it works** (`/how`): the request-flow figure (inputs, five layers, model, tool loop) with a written description; one card per layer with what it does, what it caught (measured, from `latest.json`, with denominators) and how it fails, each linking to a demo case; and the six §6.4 patterns, each with a small diagram, its effect on this demo's attacks and its cost (`id="patterns"` anchor).
+- **Limits** (`/limits`): the polite invoice and the fake policy with their measured numbers and check caveats, attackers adapt (Nasr et al.), the smaller gaps (encodings, confirmation fatigue, allowlisted sites, rule overfitting, the classifier's measured catch rate), what would help more, and the quoted sources.
+- **Sources** (`/sources`, `web/src/content/sources.ts`): every §12 source grouped, the incidents table, and the "Built with Llama" credit. A Vitest test parses PLAN §12 and checks the URL sets match exactly; ATLAS technique pages are listed as the base `https://atlas.mitre.org/techniques/` because §12 gives them as a `<ID>` pattern.
+- **Home**: a "Go further" list with the measured headline.
+- **Sandbox** (`/sandbox`): pick a toy app, edit the attacker-controlled text (the chat message, the fifth email, the page HTML or the poisoned article), reset to the original. Replay mode runs layers 1–2 through `/api/screen` (judge off) and explains why the model needs live mode; live mode runs both sides through `POST /api/runs` with `custom_text`, which the server refuses with 409 in replay mode (no recording exists for new text). Live mode wasn't exercised against the real API here (no key); FakeModel tests cover it.
+- Fix found by the new e2e: the shell scrolled every route change to the top, so in-app links to `#anchors` didn't land; it now scrolls to the named section.
+- Built with three parallel agents (How it works + Home, Limits + Sources, Sandbox UI) while the main session wrote the Sandbox backend, the pages e2e spec and the integration.
 
 ## M7: evaluation and Results (session 6, cloud container, no API calls)
 - `make eval` (`seculayer eval --mode replay`) replays the whole recorded matrix offline in about 2 s and writes `data/eval/latest.json`, `data/eval/runs/{timestamp}.jsonl.gz` and `docs/RESULTS.md`. `make eval-live` (`--mode live --record`) fills any missing recordings through the same budgeted `record` batches first; nothing was missing, so no API calls were made.
@@ -238,7 +247,7 @@ Session 2 ran in a Claude Code cloud container (Linux, Python 3.12, Node 22.22),
 - Placeholders for the developer to fill in the report: branch, roll number, university exam number, guide's name, date and signature (`PH` in `projectreport/build/report_content.py`).
 
 ## Next step
-1. M8: explainer pages (How it works, Limits with the measured hard-case numbers from `latest.json`, Sources) and the Sandbox.
+1. M9: accessibility, presenter readiness and polish (large text on every screen, focus order, an aria-live outcome region, reduced motion, every §3.4 state, copy and drift review, start-up timing, the keyboard demo-script spec).
 2. Update the report's Chapter 7 and abstract from `docs/RESULTS.md` if wanted. M7 did not modify `projectreport/`.
 
 ## Session 5 (2026-10-24, laptop): M6 complete
