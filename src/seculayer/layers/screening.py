@@ -153,6 +153,7 @@ def _screen_item(
                     excerpt,
                     None,
                     f"Instructions hidden in {label}. Decoded: “{excerpt}”",
+                    decision,
                 )
             )
             reasons.append((decision, f"hides instructions in {label}"))
@@ -181,6 +182,7 @@ def _screen_item(
                         segment.text[:160],
                         score,
                         f"The classifier scored this {score:.2f}: it looks like an attack.",
+                        decision,
                     )
                 )
                 reasons.append((decision, f"the classifier scored it {score:.2f}"))
@@ -198,6 +200,7 @@ def _screen_item(
                     judged.evidence or "",
                     None,
                     f"The judge rated this {judged.verdict}: {judged.reason}",
+                    decision,
                 )
             )
             reasons.append((decision, f"the judge rated it {judged.verdict}"))
@@ -222,6 +225,7 @@ def _rule_finding(segment_id: str, match: RuleMatch) -> Finding:
         match.excerpt,
         None,
         f"This text {match.name}.",
+        match.severity,
     )
 
 

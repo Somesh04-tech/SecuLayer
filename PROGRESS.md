@@ -1,5 +1,5 @@
 # SecuLayer build progress
-Plan: docs/PLAN.md · Last updated: 2026-10-24, session 5 (M6, on the laptop)
+Plan: docs/PLAN.md · Last updated: 2026-10-24, session 6 (M7, cloud container)
 
 ## Milestones
 | ID | Name | Status (not started / in progress / done) | Verified by | Commit |
@@ -10,13 +10,13 @@ Plan: docs/PLAN.md · Last updated: 2026-10-24, session 5 (M6, on the laptop)
 | M4 | Attack Lab, part 1 (run both ways) | done (verified against FakeModel fixtures; the original featured payloads resisted before qualification) | make check (372 pytest, 37 Vitest incl. ConfirmDialog), make e2e (16 Playwright tests: featured cases both ways, trial navigator, keyboard-only flow, axe, local-only requests), screenshots m4-lab-*.png and m1-home-*.png reviewed | see `git log` ("M4: …") |
 | M5 | Attack Lab, part 2 (show the mechanism) | done: **presentable** | make check (378 pytest, 55 Vitest incl. anatomy, ShareBar, Layers menu, timeline and shortcut tests), make e2e (24 Playwright tests: anatomy both tabs, layer toggles rerun, not-recorded state with reset, presenter shortcuts, axe), screenshots m5-anatomy-1440.png and m5-layer-menu-1280.png reviewed | see `git log` ("M5: …") |
 | M6 | Attack qualification and full recordings | done | make check (388 pytest, 55 Vitest, lint/types); env -u OPENAI_API_KEY make e2e (32 passed, one worker, full suite once); replay-check zero missing for both models; 684,722 tokens; 1,781,649 recording bytes | see `git log` ("M6: qualified attacks and full recordings") |
-| M7 | Evaluation and Results page | not started | | |
+| M7 | Evaluation and Results page | done | make check (398 pytest incl. 8 metric tests with hand-computed answers and the eval-twice determinism test; 61 Vitest), env -u OPENAI_API_KEY make e2e (36 passed incl. the Results page and its empty state), make eval twice identical apart from generated_at and live latencies, screenshot m7-results-1440.png reviewed | see `git log` ("M7: evaluation and results") |
 | M8 | Explainer pages and Sandbox | not started | | |
 | M9 | Accessibility, presenter readiness and polish | not started | | |
 | M10 | Final verification | not started | | |
 
 ## Current state
-**M1–M6 are complete.** All planned model calls are recorded for offline use, including every switch combination for the primary attacks. The measured per-case inventory is `data/m6-recordings.json`; the Results page and evaluation metrics remain M7. Case copy and PLAN §3.6 describe the recorded outcomes and the known limits of the keyword checks. Both featured attacks retain their frozen payloads and default to trial 2.
+**M1–M7 are complete.** All planned model calls are recorded for offline use, and `make eval` turns them into `data/eval/latest.json`, `docs/RESULTS.md` and the Results page (see "M7" below). Case copy and PLAN §3.6 describe the recorded outcomes and the known limits of the keyword checks. Both featured attacks retain their frozen payloads and default to trial 2.
 
 Historical foundation context:
 Session 2 ran in a Claude Code cloud container (Linux, Python 3.12, Node 22.22), not on the laptop. It had no OPENAI_API_KEY, and the proxy refused the classifier download (403 from the Hugging Face CDN). Everything that needs neither was built and tested.
@@ -56,6 +56,26 @@ Session 2 ran in a Claude Code cloud container (Linux, Python 3.12, Node 22.22),
 - the polite invoice's decline, approval and Escape flows, focus and highlighted data, plus the comparison model's disabled Layers menu and single-trial count.
 
 **How to demo it right now**: `./run.sh` starts the fully recorded replay demo. Both featured attacks open on unprotected trial 2 (each worked in 1 of 3 runs); all three protected trials stop them. For the polite invoice, full-protection trial 1 is blocked, then Next recorded run opens trial 2's confirmation dialog. The measured script is PLAN §3.6. `screen --layers=-hidden_text` is local and has no judge, so it misses the frozen inbox note; the recorded judge and tool guard are its backstops.
+
+## M7: evaluation and Results (session 6, cloud container, no API calls)
+- `make eval` (`seculayer eval --mode replay`) replays the whole recorded matrix offline in about 2 s and writes `data/eval/latest.json`, `data/eval/runs/{timestamp}.jsonl.gz` and `docs/RESULTS.md`. `make eval-live` (`--mode live --record`) fills any missing recordings through the same budgeted `record` batches first; nothing was missing, so no API calls were made.
+- Code: `src/seculayer_demo/evaluation/` (`metrics.py` pure functions, `runner.py` replay plus an observe-only pass over A, `report.py` summary and Markdown). The contract the UI reads is `web/src/api/eval.ts`.
+- Headline (gpt-5.4-mini, 3 trials; approximate 95% Wilson intervals):
+  - A, without SecuLayer: 57 of 108 attack runs worked (53%, 43–62%).
+  - D, prompt hardening only: 8 of 36 primary-attack runs (22%, 12–38%); A on the same primaries: 22 of 36 (61%), so hardening alone cut 39 percentage points.
+  - B, full SecuLayer: 5 of 108 (5%, 2–10%), plus 2 of 108 paused for Dana; 7 of 108 if every confirmation were approved.
+  - C, gpt-5.4 without SecuLayer: 11 of 36 (31%); C+, gpt-5.4 with SecuLayer: 1 of 12.
+  - Normal tasks done right (utility check passed): A 59 of 60, B 54 of 60. False alarms in B: 6 of 60 (3 blocked: support.n_instructions; 3 withheld: page.n_security_blog). M6's "53 of 60" counted outcome "completed"; one security-blog false-alarm reply still passes its utility check.
+  - Added time per run (B − A, recorded model and judge latency): median 2.9 s, p90 4.5 s. Input-token overhead: median ×1.66.
+- Per-layer (observe-only over A's 108 attack runs): cleaner 24, rules 36, classifier 3, judge 45 runs would have intervened. Action side, on A's successful attacks: tool guard 15 of 15; output guard 34 of 42.
+- The classifier isn't downloaded in the cloud container; its committed score cache covers every input, so the evaluation is byte-identical to a laptop run (the M6 inventory replays to the same SHA-256 here).
+- Decisions:
+  - Observe-only pass: A's runs replay with every layer on in `observe_only`, so model requests equal A's. 18 judge steps on A's path were never recorded (e.g. judging a sent email's result); the judge counts as unavailable there (a flag, never an intervention), and the report says so. In observe-only mode the runner now records the output guard's tool-argument verdict without acting on it.
+  - Screening findings carry a `decision` (intervene or flag), so rules, classifier and judge are reported separately. Input-side layers are measured in the full pipeline (rules and classifier see cleaned text).
+  - Action-side applicability: the tool guard for attacks whose success check is a tool call, the output guard for the rest; the coverage matrix shows "–" when the layer doesn't apply or the attack never succeeded unprotected.
+  - Added latency uses recorded model and judge latencies only, so it is deterministic; SecuLayer's own processing time (live, per layer) and the classifier's cold/cached time sit in `live`, the only block allowed to change between runs.
+  - The M6 caveats (fake-policy quotation, polite-invoice "statement" check) are carried into `latest.json`, RESULTS.md and the Results page, next to the numbers; no check was retuned.
+  - Built with one parallel agent for the Results page and the Lab's measured "With SecuLayer" line, against the `eval.ts` contract, while the main session wrote the Python side.
 
 ## Session 3 (2026-10-24, laptop): M3 recordings
 - Pulled PR #3 (M4). `make check` first ran out of memory (pytest grew past 6 GB and the kernel killed it). Two test bugs only showed up on the laptop, where the classifier is downloaded and tests don't run as root:
@@ -218,8 +238,8 @@ Session 2 ran in a Claude Code cloud container (Linux, Python 3.12, Node 22.22),
 - Placeholders for the developer to fill in the report: branch, roll number, university exam number, guide's name, date and signature (`PH` in `projectreport/build/report_content.py`).
 
 ## Next step
-1. M7: evaluation runner, approximate Wilson intervals, observe-only coverage and Results page. Use the recorded matrix and retain the pause and false-policy quotation caveats.
-2. After M7, update the report's Chapter 7 and abstract. M6 does not modify `projectreport/`.
+1. M8: explainer pages (How it works, Limits with the measured hard-case numbers from `latest.json`, Sources) and the Sandbox.
+2. Update the report's Chapter 7 and abstract from `docs/RESULTS.md` if wanted. M7 did not modify `projectreport/`.
 
 ## Session 5 (2026-10-24, laptop): M6 complete
 - Committed pre-existing writing/diagramming skills first, at the developer's request: `451d1a4`. M6 began from a clean worktree. M6 did not edit `projectreport/`.

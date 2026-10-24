@@ -489,6 +489,17 @@
       "FindingOut": {
         "additionalProperties": false,
         "properties": {
+          "decision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision"
+          },
           "detector": {
             "title": "Detector",
             "type": "string"

@@ -123,6 +123,7 @@ class Finding:
     excerpt: str
     score: float | None
     explanation: str  # one plain-language sentence
+    decision: str | None = None  # screening sub-checks: "intervene" or "flag"
 
 
 @dataclass(frozen=True)

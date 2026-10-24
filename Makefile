@@ -49,11 +49,13 @@ dev:
 	uv run --frozen seculayer serve --reload & \
 	cd "$(WEB)" && npm run dev
 
+# Recomputes every metric offline from the recordings (docs/PLAN.md §7.4).
 eval:
-	@echo "make eval: not implemented yet (M7)"; exit 1
+	uv run --frozen seculayer eval --mode replay
 
+# Records any missing calls (budgeted, asks first), then evaluates.
 eval-live:
-	@echo "make eval-live: not implemented yet (M7)"; exit 1
+	uv run --frozen seculayer eval --mode live --record --configs A,B,C,D
 
 # Fills in missing recordings (live calls, within SECULAYER_TOKEN_BUDGET). Override CASES,
 # CONFIGS and TRIALS, e.g. make record CASES='inbox.*' CONFIGS=A,B TRIALS=3.

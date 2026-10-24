@@ -315,6 +315,94 @@ def record(
     typer.echo(f"Done: {counts}. {written:,} tokens logged to data/spend.jsonl.")
 
 
+@app.command("eval")
+def evaluate_command(
+    mode: Annotated[str, typer.Option(help="replay (default, offline) or live.")] = "replay",
+    record_missing: Annotated[
+        bool, typer.Option("--record", help="Live mode: record missing calls first.")
+    ] = False,
+    configs: Annotated[str, typer.Option(help="Configurations: A,B,C,D,C+.")] = "A,B,C,D,C+",
+    cases: Annotated[str | None, typer.Option(help="Case IDs or patterns (default all).")] = None,
+    out_dir: Annotated[str, typer.Option(help="Where latest.json and runs/ go.")] = "data/eval",
+    results_md: Annotated[
+        str | None, typer.Option(help="docs/RESULTS.md path (default for full runs).")
+    ] = None,
+    yes: Annotated[bool, typer.Option("--yes", help="Don't ask before live calls.")] = False,
+) -> None:
+    """Recompute every metric from the recordings and write latest.json and RESULTS.md."""
+    from pathlib import Path
+
+    from seculayer_demo.config import REPO_ROOT
+    from seculayer_demo.evaluation import report
+    from seculayer_demo.evaluation.runner import EVAL_CONFIGS, OBSERVE, TRIALS, evaluate, plan
+    from seculayer_demo.gateway import RecordingStore
+    from seculayer_demo.server.runs import make_classifier
+
+    settings = _load_settings()
+    names = [n.strip() for n in configs.split(",") if n.strip()]
+    unknown = [n for n in names if n not in EVAL_CONFIGS]
+    if unknown or mode not in ("replay", "live"):
+        typer.echo("Use --mode replay|live and --configs from A,B,C,D,C+.", err=True)
+        raise typer.Exit(2)
+    if mode == "live":
+        if not record_missing:
+            typer.echo("Live evaluation records what it calls: pass --record.", err=True)
+            raise typer.Exit(2)
+        # Fill in missing recordings with the same budgeted batch as `seculayer record`; only
+        # keys that aren't recorded yet call the API.
+        for name in names:
+            ids = sorted({job.case.id for job in plan(settings, [name], cases)})
+            if ids:
+                record(
+                    cases=",".join(ids),
+                    configs=name,
+                    trials=TRIALS[name],
+                    yes=yes,
+                    replacement=None,
+                )
+    if "A" in names:
+        names.append(OBSERVE)
+    classifier = make_classifier(settings)
+    records = evaluate(settings, classifier, names=names, patterns=cases, log=typer.echo)
+    errors = [r for r in records if r["outcome"] == "error"]
+    if errors:
+        for r in errors[:10]:
+            typer.echo(f"  {r['config']} {r['case_id']} trial {r['trial']}: {r['error']}")
+        typer.echo(f"{len(errors)} runs failed to replay; no results written.", err=True)
+        raise typer.Exit(1)
+    store = RecordingStore(settings.recordings_dir)
+    summary = report.build_summary(
+        records,
+        models={
+            "target": settings.model,
+            "compare": settings.compare_model,
+            "judge": settings.judge_model,
+        },
+        recordings=report.recordings_info(store, [settings.model, settings.compare_model]),
+        live=report.live_measurements(records, classifier),
+    )
+    out = Path(out_dir)
+    out = out if out.is_absolute() else REPO_ROOT / out
+    runs = report.write_runs(records, out / "runs", report.run_stamp())
+    report.write_summary(summary, out / "latest.json")
+    full_run = cases is None and set(names) >= {"A", "B", "C", "D"}
+    target_md = results_md or ("docs/RESULTS.md" if full_run else None)
+    if target_md:
+        md = Path(target_md)
+        md = md if md.is_absolute() else REPO_ROOT / md
+        md.parent.mkdir(parents=True, exist_ok=True)
+        md.write_text(report.results_markdown(summary), encoding="utf-8")
+        typer.echo(f"Wrote {md.relative_to(REPO_ROOT) if md.is_relative_to(REPO_ROOT) else md}")
+    for config in summary["configs"]:
+        attacks = config["attacks"]
+        if attacks:
+            typer.echo(
+                f"  {config['id']:<3} {config['label']}: attacks worked "
+                f"{attacks['count']} of {attacks['total']} runs"
+            )
+    typer.echo(f"Wrote {out / 'latest.json'} and {runs.name}")
+
+
 @app.command("replay-check")
 def replay_check_command(
     cases: Annotated[str, typer.Option(help="Case IDs or patterns.")] = "*",

@@ -369,6 +369,7 @@ def screen(body: ScreenBody, request: Request) -> ScreenResult:
                         excerpt=f.excerpt,
                         score=f.score,
                         explanation=f.explanation,
+                        decision=f.decision,
                     )
                     for f in v.findings
                 ],

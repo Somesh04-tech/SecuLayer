@@ -49,6 +49,7 @@ class FindingOut(_Event):
     excerpt: str
     score: float | None
     explanation: str
+    decision: str | None = None
 
 
 class ToolCallOut(_Event):

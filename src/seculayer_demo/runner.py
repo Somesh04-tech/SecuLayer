@@ -124,6 +124,7 @@ def _finding_out(finding: Finding) -> FindingOut:
         excerpt=finding.excerpt,
         score=finding.score,
         explanation=finding.explanation,
+        decision=finding.decision,
     )
 
 
@@ -390,7 +391,9 @@ class AgentRunner:
                 self._verdict(tool_review.verdict, step)
                 if tool_review.action == "allow":
                     leak = guard.review_tool_arguments(call, ctx)
-                    if leak is not None:
+                    if leak is not None and self.request.layers.observe_only:
+                        self._verdict(leak, step)  # recorded, but observe-only changes nothing
+                    elif leak is not None:
                         self._verdict(leak, step)
                         action.status = "blocked"
                         self._emit(

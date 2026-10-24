@@ -340,6 +340,8 @@ export interface components {
         };
         /** FindingOut */
         FindingOut: {
+            /** Decision */
+            decision?: string | null;
             /** Detector */
             detector: string;
             /** Excerpt */
