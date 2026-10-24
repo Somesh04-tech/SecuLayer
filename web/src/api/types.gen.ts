@@ -535,6 +535,8 @@ export interface components {
         RunBody: {
             /** Case Id */
             case_id: string;
+            /** Custom Text */
+            custom_text?: string | null;
             /** Layers */
             layers?: {
                 [key: string]: boolean;

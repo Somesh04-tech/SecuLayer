@@ -239,6 +239,8 @@ class RunBody(BaseModel):
     layers: dict[str, bool] | None = None
     model: str | None = None
     trial: int = Field(default=1, ge=1, le=10)
+    # The Sandbox: the viewer's own attacker text. It has no recording, so live mode only.
+    custom_text: str | None = Field(default=None, max_length=20_000)
 
 
 class DecisionBody(BaseModel):
@@ -272,7 +274,14 @@ def start_run(body: RunBody, request: Request) -> StreamingResponse:
     if service.mode == "live" and service.transport() is None:
         raise HTTPException(409, "Live mode needs an OpenAI key in .env.")
     layers = LayerSwitches(**(body.layers or {})) if body.protected else LayerSwitches.all_off()
-    run = RunRequest(body.case_id, body.protected, model, layers, body.trial)
+    if body.custom_text is not None and service.mode != "live":
+        raise HTTPException(
+            409,
+            "Your own text has no recording. Running the model needs live mode (./run.sh --live).",
+        )
+    run = RunRequest(
+        body.case_id, body.protected, model, layers, body.trial, custom_text=body.custom_text
+    )
     runner, generator = service.start(run)
     return StreamingResponse(service.stream(runner, generator), media_type=NDJSON)
 

@@ -984,6 +984,18 @@
             "title": "Case Id",
             "type": "string"
           },
+          "custom_text": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Text"
+          },
           "layers": {
             "anyOf": [
               {

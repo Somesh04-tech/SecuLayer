@@ -111,4 +111,6 @@ export interface RunBody {
   layers?: Partial<Record<string, boolean>>;
   model?: string;
   trial?: number;
+  /** Sandbox: the viewer's own attacker text. Live mode only. */
+  custom_text?: string;
 }
