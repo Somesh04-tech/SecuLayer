@@ -1,5 +1,5 @@
 # SecuLayer build progress
-Plan: docs/PLAN.md · Last updated: 2026-10-24, session 3 (M3 recordings, on the laptop)
+Plan: docs/PLAN.md · Last updated: 2026-10-24, session 4 (project report, on the laptop)
 
 ## Milestones
 | ID | Name | Status (not started / in progress / done) | Verified by | Commit |
@@ -174,12 +174,20 @@ Session 2 ran in a Claude Code cloud container (Linux, Python 3.12, Node 22.22),
 ## Known issues
 - The featured attacks land in 1 of 3 recorded unprotected runs each, so the demo depends on replaying trial 2 (now the default). Live mode will usually show "Not hijacked this time".
 - Recordings of the original featured payloads remain in `data/recordings/*.jsonl.gz` (their keys no longer match any case). They are harmless; M6's `replay-check` can report or prune them.
-- **Layers-menu (`combos`) recordings not made.** They're about 220k of the 240k-token estimate, and they would go stale if M6 revises the featured payloads (the request keys change). Record them after the featured payloads are frozen.
 - In the cloud container, `make e2e` needed a Playwright browsers folder that links build 1248 to the preinstalled 1243. On the laptop, `.cache/ms-playwright` already has 1248.
 - The Playwright web server now runs `uv run --frozen`. Without `--frozen`, uv rewrote `uv.lock`'s `exclude-newer` timestamp in a different timezone.
 - Carried over from M1: eslint 9.39.5 is deprecated (kept for jsx-a11y).
 - The toy pages inside the sandboxed iframes render in the browser's default (serif) font. The CSP and the token rules keep any font-family out of them, and that's acceptable: they're fictional third-party content.
 
+## Session 4 (2026-10-24, laptop): project report
+- Session 3 stopped mid-way through the report. Re-verified M1-M5 first: `make check` passes on the laptop (378 pytest with none skipped, 55 Vitest, ruff, mypy strict, tsc; 1 min 30 s). `make e2e` was not rerun (M5 recorded 24 passing).
+- Wrote `projectreport/build/content_ch6_8.py`: Chapter 6 (testing and validation), 7 (results and discussion), 8 (conclusion and future scope), the references block, and Appendices A (source code), B (full-size screenshots) and C (per-case offline screening tables, generated from `build/data/screen_all.json`).
+- Updated Chapters 1-5 and the abstract from the pre-M5 state (commit 105fe24) to M5 (b92144d): M5 done, FR-9 and FR-13 implemented, test counts 55 Vitest and 24 Playwright, spend 59 calls / 47,687 tokens / $0.0674, line counts, and a paragraph on the M5 front end.
+- Chapter 7's layer-by-layer table comes from offline replays of the `combos` recordings at trial 1 (no API calls). One finding to keep in mind for M6/M7: in `support.override` with screening off, the model leaked with the trust policy in place (the output guard caught the canary), in a trial where the unprotected model refused. One trial; configuration D will measure hardening alone.
+- Build fix: caption SEQ fields now carry `\r n`. LibreOffice ignores `\s 1`, so it numbered chapter 5's first figure 5.12 and the page-number pass failed.
+- Output: `projectreport/SecuLayer_Project_Report.docx` and `.pdf`, 87 pages, 22 figures, 29 tables, 42 references. Rebuild with `uv run --no-project --with python-docx --with pypdf python projectreport/build/build_report.py` (about 30 s; needs LibreOffice and pdftotext).
+- Placeholders for the developer to fill in the report: branch, roll number, university exam number, guide's name, date and signature (`PH` in `projectreport/build/report_content.py`).
+
 ## Next step
-1. The developer asked to stop the build after M5 and finish the project report first (`projectreport/`). Next build milestone: M6 (qualify the other 10 attacks, full recordings). (prompt anatomy, Layers menu, glossary, timeline, presenter shortcuts).
-3. A project report (DOCX) is being written separately into `projectreport/`, following the college format there.
+1. The developer fills the report placeholders, then rebuilds. When M6/M7 produce the full evaluation, update Chapter 7 (`content_ch6_8.py`) and the abstract, and rebuild.
+2. Next build milestone: M6 (qualify the other 10 attacks, full recordings).
