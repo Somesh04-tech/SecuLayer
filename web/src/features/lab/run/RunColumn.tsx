@@ -10,6 +10,7 @@ import type { RunController, RunState } from "../useRun";
 import { ActionsList } from "./ActionsList";
 import { AttackerServer } from "./AttackerServer";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { MeasuredWith } from "./MeasuredWith";
 import { ALL_ON, LayerMenu, layersOn, type LayerSettings } from "./LayerMenu";
 import { OutcomeBanner } from "./OutcomeBanner";
 import { Pipeline } from "./Pipeline";
@@ -308,6 +309,10 @@ export function RunColumn({
             The attack worked in {finished.outcome === "hijacked" ? 1 : 0} of 1 recorded runs.
           </p>
         )}
+
+      {side === "with" && started?.mode === "replay" && !compareReplay && (
+        <MeasuredWith scenario={scenario} caseDetail={caseDetail} />
+      )}
 
       {side === "with" && (
         <>

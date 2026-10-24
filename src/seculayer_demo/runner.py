@@ -15,7 +15,7 @@ call returns, so `run.started` can say how many recorded trials exist.
 from __future__ import annotations
 
 from collections.abc import Generator, Iterator
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from typing import Any, Literal
 
 from pydantic import BaseModel
@@ -95,6 +95,7 @@ class RunRequest:
     layers: LayerSwitches = field(default_factory=LayerSwitches)
     trial: int = 1
     on_confirm: ConfirmPolicy = "ask"  # "stop" ends a paused run (the evaluation; no person)
+    custom_text: str | None = None  # the Sandbox: the viewer's own attacker text (live only)
 
 
 @dataclass
@@ -124,7 +125,29 @@ def _finding_out(finding: Finding) -> FindingOut:
         excerpt=finding.excerpt,
         score=finding.score,
         explanation=finding.explanation,
+        decision=finding.decision,
     )
+
+
+def with_custom_text(scenario: Scenario, case: Case, text: str) -> Case:
+    """The case with its attacker-controlled content replaced by the viewer's text (Sandbox).
+
+    Support chat: the customer's message. Inbox: the fifth (attacker) email's body. Page: the
+    page HTML. HelpDesk: the body of the case's poisoned article. The success checks stay the
+    case's own. Only the support chat marks the text as injected: elsewhere the viewer may keep
+    harmless text, and `injected` parts are ground truth only (docs/PLAN.md §6.9).
+    """
+    if scenario.app == "support":
+        return replace(case, user_request=text, injected_text=(text,))
+    if scenario.app == "inbox" and case.extra_email is not None:
+        return replace(case, extra_email=replace(case.extra_email, body=text), injected_text=())
+    if scenario.app == "page" and case.page is not None:
+        return replace(case, page=replace(case.page, html=text), injected_text=())
+    if scenario.app == "helpdesk" and case.added_article_ids:
+        target = case.added_article_ids[0]
+        articles = tuple(replace(a, body=text) if a.id == target else a for a in case.articles)
+        return replace(case, articles=articles, injected_text=())
+    raise ValueError(f"{case.id} has no attacker-controlled content to replace")
 
 
 def readable(text: str) -> str:
@@ -153,6 +176,8 @@ class AgentRunner:
         self.classifier = classifier
         self.run_id = run_id
         scenario, case = find_case(request.case_id, data_dir)
+        if request.custom_text is not None:
+            case = with_custom_text(scenario, case, request.custom_text)
         self.scenario: Scenario = scenario
         self.case: Case = case
         self.policy = scenario.policy
@@ -390,7 +415,9 @@ class AgentRunner:
                 self._verdict(tool_review.verdict, step)
                 if tool_review.action == "allow":
                     leak = guard.review_tool_arguments(call, ctx)
-                    if leak is not None:
+                    if leak is not None and self.request.layers.observe_only:
+                        self._verdict(leak, step)  # recorded, but observe-only changes nothing
+                    elif leak is not None:
                         self._verdict(leak, step)
                         action.status = "blocked"
                         self._emit(

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { ButtonLink } from "../components/Button";
 import { Container } from "../components/Page";
 import { Term } from "../components/Term";
+import { NextSteps } from "../features/home/NextSteps";
 import { PromptDiagram } from "../features/home/PromptDiagram";
 import { ScenarioCards } from "../features/home/ScenarioCards";
 
@@ -46,6 +47,15 @@ export function HomePage() {
         </p>
         <div className="mt-6">
           <ScenarioCards />
+        </div>
+      </section>
+
+      <section className="mt-16" aria-labelledby="more-heading">
+        <h2 id="more-heading" className="text-h2 text-ink">
+          Go further
+        </h2>
+        <div className="mt-6">
+          <NextSteps />
         </div>
       </section>
     </Container>
