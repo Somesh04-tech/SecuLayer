@@ -495,7 +495,7 @@ def build(pages):
     set_sect(els[CERT_END], sect([('header', 'rId7'), ('footer', 'rId8')], 'lowerRoman'))
     set_sect(els[FRONT_END], sect([('header', 'rId7'), ('footer', 'rId8')], 'lowerRoman'))
     final = body.find(w('sectPr'))
-    final.addprevious(sect([('header', 'rId31'), ('footer', 'rId32')], 'decimal', start=1))
+    final.addprevious(sect([('header', 'rId7'), ('footer', 'rId32')], 'decimal', start=1))
     body.remove(final)
 
     for i in sorted(DELETE, reverse=True):
